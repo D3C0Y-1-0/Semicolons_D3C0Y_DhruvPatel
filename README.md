@@ -92,6 +92,19 @@ npm run dev                      # landing: http://localhost:5173  console: http
 
 The second row is deliberately harsh: whole phrasings are held out. That's why the classifier is one weighted signal (0.4) next to the tactic tagger, not a verdict on its own. Full report: `eval/message_clf_report.md`.
 
+**Whole pipeline on messages nobody trained on.** Three sets of hand-written messages (English, Hinglish, Hindi), each scored before it was used to fix anything: 53/68 scams HIGH (78%; 85% on the latest set), 52/52 genuine messages LOW, no false HIGH. `python ../eval/run_holdout.py ../eval/holdout_messages_v3.csv`; method and limits in `eval/message_holdout_report.md`.
+
+**AI-generated images (UnivFD head, refit by us).** `python train/train_image_head.py` builds 1,000 COCO photos vs 1,000 SD-Turbo images prompted with captions of other COCO photos, both resized and JPEG re-encoded the same way, and refits only the linear head (CLIP stays frozen, weights pulled towards the authors'). On 600 held-out images:
+
+| Head | AUROC | AI images caught | False alarms on real photos | Caught after JPEG 50 (WhatsApp-like) |
+| --- | --- | --- | --- | --- |
+| Original UnivFD (2023) | 0.713 | 11% | 3% | 12% |
+| Refit by us (`models/univfd_fc_tuned.pth`) | 0.989 | 97% | 6% | 90% |
+
+The 2023 head misses today's one-step diffusion images; the refit catches them. Same generator in train and test (held-out prompts), so a new generator family can score lower. `USE_TUNED_HEADS=0` goes back to the original. Report: `eval/image_head_report.md`.
+
+**Cloned voices (pellav2), measured on Indian English and Hindi.** `python train/train_voice_head.py` builds 600 real clips (LibriSpeech, FLEURS Hindi) and 600 TTS fakes (7 Edge neural voices incl. en-IN and hi-IN, plus Windows TTS as an engine never trained on), all MP3-encoded identically, each also through Opus 16 kbps. On 532 held-out clips the original pellav2 caught every fake (99.7% after Opus) with 0 false alarms on 172 real speakers; refitting its head did not help, so the original stays. Not yet measured: clones of a specific person. Report: `eval/voice_head_report.md`.
+
 ## 5. How a verdict is made
 
 ```
