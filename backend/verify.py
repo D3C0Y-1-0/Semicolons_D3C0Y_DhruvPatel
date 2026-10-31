@@ -25,9 +25,11 @@ def call(method, **params):
 
 def send_verification(case, person):
     if not TOKEN:
-        raise RuntimeError("TELEGRAM_BOT_TOKEN not set")
+        raise RuntimeError("Telegram isn't set up: add TELEGRAM_BOT_TOKEN to backend/.env and restart the backend. "
+                           "Until then, use the two buttons to record their answer.")
     if not person or not person.get("telegram_chat_id"):
-        raise RuntimeError("claimed person has no Telegram chat id enrolled")
+        raise RuntimeError("This person has no Telegram chat id. They send /start to the bot, then you add the id "
+                           "in Trust Graph.")
     r = case["result"]
     amount = r.get("facts", {}).get("amount_inr")
     text = (f"TrustCheck security check\n\nSomeone using your name ({person['name']}) just sent a request"
