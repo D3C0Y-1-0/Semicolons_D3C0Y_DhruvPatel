@@ -38,7 +38,7 @@ TACTICS = {
                         r"\bpaise? (bhejo|transfer|chahiye|de do)\b", r"पैसे", r"भुगतान", r"\bgift ?cards?\b", r"\b(bitcoin|crypto|usdt)\b"],
     "credential_request": [r"\botp\b", r"\bpassword\b", r"\bpin\b", r"\blog ?in (details|credentials)\b", r"\bverify your account\b",
                            r"\b(anydesk|teamviewer|quick ?support|rustdesk)\b", r"\bremote access\b", r"\bcvv\b"],
-    "channel_switch": [r"\bwhats ?app\b", r"\bpersonal (number|phone|email)\b", r"\bcall me on\b", r"\btelegram\b",
+    "channel_switch": [r"\bwhats ?app\b", r"\bwh\w{0,3}app\b", r"\bwa\.me/", r"\bpersonal (number|phone|email)\b", r"\bcall me on\b", r"\btelegram\b",
                        r"\bswitch to\b", r"\bnot on (email|teams)\b", r"\bnew number\b"],
     "new_beneficiary": [r"\bnew (account|vendor|supplier|payee|bank details|beneficiary)\b", r"\bnew \w+ account\b", r"\b(updated|changed) (bank|account) details\b",
                         r"\baccount (has )?changed\b"],
@@ -101,8 +101,9 @@ SCAM_TYPES = {  # key: (label, topic, hook or None, what to do)
                       PAY_CUE + "|" + LINK_CUE + r"|\bclaim\b|\bcall\b|whats ?app|\benter\b|\bsurvey\b|\bregister\b",
                       "You can't win a draw you never entered. Never pay or fill in a 'survey' to receive a prize."),
     "job_task": ("Task / part-time job scam",
-                 r"\b(part[- ]?time|work from home|daily (income|earning)|earn (rs\.?|₹|inr)?\s?[\d,]+|like (youtube )?videos?|rate (hotels|products)|online tasks?|prepaid tasks?)\b",
-                 PAY_CUE + r"|\btasks?\b|telegram|whats ?app|registration", "Real jobs never ask you to pay. 'Pay to unlock tasks' always ends in a loss."),
+                 r"\b(part[- ]?time|work from (home|phone|mobile)|daily (income|earning)|like (youtube )?videos?|rate (hotels|products)|online (tasks?|staff|job|work)|prepaid tasks?|spare time)\b"
+                 r"|\bearn\b.{0,6}[\d,]{3,}.{0,25}\b(per|a|every) (day|hour|week)\b|\bearn (rs\.?|₹|inr|\$|£|€)?\s?[\d,]+",
+                 PAY_CUE + r"|\btasks?\b|telegram|wh\w{0,3}app\b|wa\.me|registration|\bbonus\b|contact us|leave a message", "Real jobs never ask you to pay. 'Pay to unlock tasks' always ends in a loss."),
     "investment": ("Investment / trading scam",
                    r"\b(guaranteed|assured|fixed)\s+(\d+%\s+)?(returns?|profits?)\b|\bdouble (your )?money\b|\b(stock|trading|ipo|crypto|forex) (tips|group|signals?)\b|\b\d{2,3}%\s+(returns?|profits?)\b",
                    None, "No real investment guarantees returns. Check SEBI registration before investing anything."),
@@ -249,6 +250,10 @@ def link_risk(url, online=None):
         found.append((0.85, "points to a bare IP address, not a named website"))
     if "xn--" in host:
         found.append((0.9, "uses look-alike foreign letters in the address (punycode)"))
+    wa = re.match(r"/(\d{8,15})", p.path or "") if host in ("wa.me", "api.whatsapp.com") else None
+    if wa:
+        found.append((0.75 if not wa.group(1).startswith("91") else 0.5,
+                      f"opens a WhatsApp chat with an unknown {'foreign ' if not wa.group(1).startswith('91') else ''}number (+{wa.group(1)[:2]}…)"))
     if "@" in (p.netloc or ""):
         found.append((0.8, "hides the real address behind an @ sign"))
     for brand, real in BRANDS.items():
@@ -539,7 +544,7 @@ def analyze(text="", eml_bytes=None, approval_limit=None):
               "channel_switch": "channel_switch" in found, "digital_arrest": digital_arrest,
               "scam_pattern": bool(types),
               # safety net for scams no pattern knows yet: scam-like wording that asks for money or an OTP is never LOW
-              "scam_wording_ask": (p or 0) >= 0.8 and action in ("payment", "payment_high", "credentials", "install_app")
+              "scam_wording_ask": (p or 0) >= 0.8 and action in ("payment", "payment_high", "credentials", "install_app", "click_link")
               and bool(set(found) - {"payment_request"}),  # plus a pressure tactic: a plain "pay the rent" stays LOW
               # a pattern backed by scam wording, a risky link or two manipulation tactics is no longer a maybe
               "scam_strong": bool(types) and ((p or 0) >= 0.6 or len(found) >= 2 or any(
@@ -594,6 +599,7 @@ def demo():
         ("For the job offer please send your Aadhaar card, PAN card and a selfie on this number.", "personal_data", "personal_info"),
         ("You've been selected to enter the UPS prize draw this week! Complete a short survey and you will have the chance to win a FREE iPhone! Enter here: ups.website.com/12345678", "lottery_prize", "payment_high"),
         ("U.S. Post: You have a USPS parcel being cleared, due to the detection of an invalid zip code address, the parcel can't be delivered. Update here: usps-redeliver.top/track", "delivery_customs", "click_link"),
+        ("Hello! I'm from TikTok's HR department. We'd like to invite you to be our online staff. Just use a mobile phone and work in your spare time to earn f300-f800 per day. Leave a message now and get a f8 bonus. Contact us via WhstaApp for details: http://wa.me/447785390714", "job_task", "click_link"),
         ("prince of wales has decided donate it part of the wealth, u have been chosen as the lucky one, send 1 lakh inr to me to open a base account in london", "windfall", "payment_high"),
     ]
     for text, kind, act in scams:
