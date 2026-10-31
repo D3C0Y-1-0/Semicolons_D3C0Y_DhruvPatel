@@ -64,7 +64,7 @@ Every detector returns `{signal, label, score 0..1 | None, why, evidence[]}`. A 
 
 | Check | Model | Source and licence | Notes |
 | --- | --- | --- | --- |
-| Cloned voice | pellav2 (wav2vec2 XLS-R-300M + layer weighting) | HF `Sadanie/pellav2-audio-deepfake-detector`, MIT | 95.8% on a 2026 benchmark of ~25 modern cloning systems; 4 s windows, 2 s hop, clip score = mean of the worst 30% |
+| Cloned voice | pellav2 (w2v-BERT 2.0 backbone, 600M, + layer weighting) | HF `Sadanie/pellav2-audio-deepfake-detector`, MIT | 95.8% on a 2026 benchmark of ~25 modern cloning systems; 4 s windows, 2 s hop, clip score = mean of the worst 30% |
 | Voiceprint | ECAPA-TDNN | `speechbrain/spkrec-ecapa-voxceleb`, Apache-2.0 | Cosine vs enrolled; threshold `VOICE_THRESHOLD` (tune on eval) |
 | Transcript | faster-whisper large-v3 (small for live) | MIT | Hindi/Hinglish |
 | Face swap | GenD CLIP ViT-L/14 | `yermandy/GenD_CLIP_L_14`, WACV 2026, MIT (model code vendored) | Cross-dataset AUROC 96.0 Celeb-DF v2, 87.1 DFDC; 32 frames, top-third mean |

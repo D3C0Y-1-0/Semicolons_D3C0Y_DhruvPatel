@@ -48,7 +48,7 @@ backend/
   seed.py             demo people: cfo-rajesh (Rajesh Kumar, CFO, limit ₹10 lakh), ceo-ananya, hr-farhan
   setup_models.py     downloads every model and prints PASS/FAIL per model
   detectors/
-    audio.py          pellav2 (Sadanie/pellav2-audio-deepfake-detector, MIT, XLS-R-300M; 4 s windows, 2 s hop, top-30% mean), ECAPA voiceprint, faster-whisper, waveform peaks
+    audio.py          pellav2 (Sadanie/pellav2-audio-deepfake-detector, MIT, w2v-BERT 2.0 backbone, preprocessing mirrors pellav2_infer.py, revision pinned; 4 s windows, 2 s hop, top-30% mean), ECAPA voiceprint, faster-whisper, waveform peaks
     video.py          InsightFace buffalo_l (detect + ArcFace), GenD (yermandy/GenD_CLIP_L_14, WACV 2026, MIT; vendored in vendor/modeling_gend.py), heuristic lip-sync, face thumbnails
     image.py          C2PA + generator metadata, UnivFD (CVPR 2023; models/univfd_fc.pth + openai/clip-vit-large-patch14), GenD on faces
     message.py        email headers (SPF/DKIM/DMARC, Reply-To, display name), lookalike domains, URLs (blocklist + Safe Browsing), tactic tagging (Claude API if key, else EN/Hinglish/Hindi lexicon), trained classifier, amount/action extraction

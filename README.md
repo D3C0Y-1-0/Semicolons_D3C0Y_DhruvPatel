@@ -93,7 +93,7 @@ After that, hard policy rules set a minimum. For example, a payment request from
 
 | Check | Model | File |
 | --- | --- | --- |
-| Cloned voice | pellav2 (wav2vec2 XLS-R-300M, MIT) | detectors/audio.py |
+| Cloned voice | pellav2 (w2v-BERT 2.0 backbone, MIT) | detectors/audio.py |
 | Voiceprint | SpeechBrain ECAPA-TDNN | detectors/audio.py |
 | Transcript (Hindi, Hinglish) | faster-whisper | detectors/audio.py |
 | Face swap | GenD CLIP-L/14 (WACV 2026, MIT), vendored in `vendor/` | detectors/video.py |

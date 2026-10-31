@@ -18,7 +18,7 @@ SILENCE_RMS = 0.005
 CACHE = Path(__file__).resolve().parent.parent / "model_cache"
 PELLA_REPO = "Sadanie/pellav2-audio-deepfake-detector"
 # Security: pellav2's model class is downloaded code. Pin a commit hash here once you've read it.
-PELLA_REVISION = os.getenv("PELLAV2_REVISION", "main")
+PELLA_REVISION = os.getenv("PELLAV2_REVISION", "29daea8b04acf2d3f11d1d0da6b01c17fc8a1e4b")
 WHISPER_SIZE = os.getenv("WHISPER_SIZE", "large-v3")
 
 
@@ -56,7 +56,16 @@ def pellav2():
     model = mod.Detector()
     weights = hf_hub_download(PELLA_REPO, "pellav2_detector.pt", revision=PELLA_REVISION)
     model.load_state_dict(torch.load(weights, map_location="cpu"))
-    return model.to(device()).eval()
+    return model.to(device()).eval(), mod
+
+
+def pella_prep(w, mod):
+    """Per-window version of pellav2_infer.load_clip: DC removal, 20 Hz high-pass, -23 LUFS, clip."""
+    from scipy.signal import butter, sosfiltfilt
+    w = w - w.mean()
+    w = sosfiltfilt(butter(2, 20.0, btype="highpass", fs=SR, output="sos"), w).astype(np.float32)
+    gain = float(np.clip(mod.TARGET_LUFS - mod.loudness(w), -40.0, 40.0))
+    return np.clip(w * 10 ** (gain / 20), -1.0, 1.0).astype(np.float32)
 
 
 def windows(wav):
@@ -74,11 +83,11 @@ def windows(wav):
 def spoof_timeline(wav):
     """[{start, end, p_fake}] per non-silent 4 s window."""
     import torch
-    model, dev = pellav2(), device()
+    (model, mod), dev = pellav2(), device()
     items = [(s, w) for s, w in windows(wav) if np.sqrt(np.mean(w ** 2)) >= SILENCE_RMS]
     out = []
     for i in range(0, len(items), 8):
-        batch = np.stack([(w - w.mean()) / (w.std() + 1e-7) for _, w in items[i:i + 8]])
+        batch = np.stack([pella_prep(w, mod) for _, w in items[i:i + 8]])
         with torch.no_grad():
             p = torch.sigmoid(model(torch.from_numpy(batch).float().to(dev)).reshape(-1)).cpu().tolist()
         out += [{"start": round(s / SR, 2), "end": round(min(s + WIN, len(wav)) / SR, 2), "p_fake": round(q, 3)}
@@ -121,14 +130,25 @@ def voice_embedding(wav):
         return ecapa().encode_batch(torch.from_numpy(wav).unsqueeze(0)).reshape(-1).cpu().tolist()
 
 
+WHISPER_DEVICE = os.getenv("WHISPER_DEVICE", "auto")
+
+
 @functools.cache
-def whisper(size):
+def whisper(size, dev):
     from faster_whisper import WhisperModel
-    return WhisperModel(size, device="auto", compute_type="int8")
+    return WhisperModel(size, device=dev, compute_type="int8")
 
 
 def transcribe(wav, size=None):
-    segments, info = whisper(size or WHISPER_SIZE).transcribe(wav, word_timestamps=True, vad_filter=True)
+    global WHISPER_DEVICE
+    try:
+        segments, info = whisper(size or WHISPER_SIZE, WHISPER_DEVICE).transcribe(wav, word_timestamps=True, vad_filter=True)
+        segments = list(segments)  # decoding is lazy; force it here so a GPU failure surfaces inside this try
+    except Exception:
+        if WHISPER_DEVICE == "cpu":
+            raise
+        WHISPER_DEVICE = "cpu"  # GPU seen but CUDA/cuDNN DLLs missing (common on Windows): CPU still works
+        return transcribe(wav, size)
     words, text = [], []
     for seg in segments:
         text.append(seg.text.strip())
