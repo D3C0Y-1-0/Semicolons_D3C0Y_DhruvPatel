@@ -56,7 +56,8 @@ def pellav2():
     model = mod.Detector()
     weights = hf_hub_download(PELLA_REPO, "pellav2_detector.pt", revision=PELLA_REVISION)
     model.load_state_dict(torch.load(weights, map_location="cpu"))
-    return model.to(device()).eval(), mod
+    model = model.to(device()).eval()
+    return (model.half() if device() == "cuda" else model), mod  # fp16 halves VRAM (2.2 -> 1.1 GB); run under autocast
 
 
 def pella_prep(w, mod):
@@ -88,8 +89,8 @@ def spoof_timeline(wav):
     out = []
     for i in range(0, len(items), 8):
         batch = np.stack([pella_prep(w, mod) for _, w in items[i:i + 8]])
-        with torch.no_grad():
-            p = torch.sigmoid(model(torch.from_numpy(batch).float().to(dev)).reshape(-1)).cpu().tolist()
+        with torch.no_grad(), torch.autocast("cuda", dtype=torch.float16, enabled=dev == "cuda"):
+            p = torch.sigmoid(model(torch.from_numpy(batch).float().to(dev)).reshape(-1).float()).cpu().tolist()
         out += [{"start": round(s / SR, 2), "end": round(min(s + WIN, len(wav)) / SR, 2), "p_fake": round(q, 3)}
                 for (s, _), q in zip(items[i:i + 8], p)]
     return out

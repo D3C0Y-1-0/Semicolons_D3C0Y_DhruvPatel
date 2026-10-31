@@ -27,12 +27,18 @@ pip install torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 --index-url https
 # No GPU: pip install torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0
 
 pip install -r requirements.txt
+# faster-whisper and insightface pull in CPU onnxruntime, which shadows the GPU build: remove it, restore the GPU one
+pip uninstall -y onnxruntime; pip install --force-reinstall --no-deps onnxruntime-gpu==1.23.2
 copy .env.example .env      # then edit .env
 ```
 
 `insightface` fails to install on Windows unless the **Microsoft C++ Build Tools** are present ("Desktop development with C++" in the Visual Studio Build Tools installer). Install them, reopen the terminal, then run `pip install insightface` again.
 
-No GPU? In `.env` set `WHISPER_SIZE=small` and `VIDEO_FRAMES=8`.
+No GPU? In `.env` set `WHISPER_SIZE=small` and `VIDEO_FRAMES=8`, and `pip install onnxruntime` in place of `onnxruntime-gpu`.
+
+No `winget`? Skip ffmpeg: the backend falls back to the binary bundled with `imageio-ffmpeg` (in requirements).
+
+On a 6 GB GPU (tested: RTX 4050 laptop) every model fits at once: pellav2, GenD and UnivFD run in fp16, InsightFace runs on CUDA through `onnxruntime-gpu==1.23.2` (newer PyPI builds need CUDA 13, torch here is CUDA 12). Warm timings: a 20 s voice note about 2.5 s, a 20 s video call about 4.5 s. The first check after starting the backend loads the models and takes about a minute.
 
 ## 2. Check that everything works
 

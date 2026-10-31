@@ -74,10 +74,10 @@ Verified in the build sandbox:
 - Message classifier trained: SMS held-out AUROC 0.995; unseen Indian templates AUROC 0.849, recall 0.80, FPR 0.20.
 
 Verified on the team laptop (RTX 4050 6 GB, i5-13450HX, Python 3.11 venv in `backend/.venv`, torch 2.8.0+cu126), 31 Oct 2026:
-- Every model loads and runs: pellav2 (GPU, 2.8 GB VRAM), ECAPA, faster-whisper small + large-v3 (GPU), InsightFace buffalo_l (CPU onnxruntime), GenD, UnivFD.
+- Every model loads and runs on the GPU at once in 5.5 GB: pellav2, GenD and UnivFD (vision tower only) in fp16, ECAPA, faster-whisper large-v3, InsightFace buffalo_l detection + recognition via onnxruntime-gpu 1.23.2 (CUDA 12; 1.24+ on PyPI need CUDA 13). fp16 left every smoke score unchanged.
 - Smoke results (not an eval, n=1 each): Windows TTS voice p(fake) 0.999, LibriSpeech human 0.001, both unchanged after Opus 16 kbps; GenD on FF++ sample face-swap 0.967 vs real 0.319, so `GEND_FAKE_INDEX=1` is right.
 - `/analyze` with media: TTS "CFO" voice note HIGH 100 with transcript; same voice compressed is linked as one campaign; real speech LOW 0; face-swap video HIGH 100 (GenD 0.979 over 32 frames, lip-sync 0.64); face-swap still with no request LOW + "Synthetic media detected" badge.
-- First media check after a backend start is slow while models load (about 45 s audio, 80 s video); later checks take a few seconds.
+- Warm timings: 20 s voice note about 2.5 s, 20 s video call about 4.5 s (was 99 s before the fp16 and GPU-face fixes: VRAM was spilling into system RAM). The first check after a backend start loads models, about a minute.
 
 ## Run
 

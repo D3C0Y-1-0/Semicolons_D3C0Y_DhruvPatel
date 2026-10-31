@@ -17,8 +17,11 @@ N_FRAMES = int(os.getenv("VIDEO_FRAMES", "32"))       # set 8 on CPU-only laptop
 @functools.cache
 def face_app():
     from insightface.app import FaceAnalysis
-    cuda = device() == "cuda"
-    app = FaceAnalysis(name="buffalo_l", providers=(["CUDAExecutionProvider"] if cuda else []) + ["CPUExecutionProvider"])
+    cuda = device() == "cuda"  # also imports torch first, so onnxruntime-gpu reuses torch's CUDA/cuDNN DLLs on Windows
+    gpu = [("CUDAExecutionProvider", {"cudnn_conv_algo_search": "HEURISTIC", "arena_extend_strategy": "kSameAsRequested"})]
+    # only box + ArcFace embedding are used; skipping landmark and gender/age models is ~3x faster
+    app = FaceAnalysis(name="buffalo_l", allowed_modules=["detection", "recognition"],
+                       providers=(gpu if cuda else []) + ["CPUExecutionProvider"])
     app.prepare(ctx_id=0 if cuda else -1, det_size=(640, 640))
     return app
 
@@ -26,7 +29,8 @@ def face_app():
 @functools.cache
 def gend():
     from vendor.modeling_gend import GenD
-    return GenD.from_pretrained(GEND_MODEL).to(device()).eval()
+    m = GenD.from_pretrained(GEND_MODEL).to(device()).eval()
+    return m.half() if device() == "cuda" else m  # fp16 halves VRAM; 6 GB cards spill to system RAM otherwise
 
 
 def largest_face(frame_bgr):
@@ -53,9 +57,9 @@ def fake_probs(crops):
     m = gend()
     out = []
     for i in range(0, len(crops), 16):
-        x = torch.stack([m.feature_extractor.preprocess(c) for c in crops[i:i + 16]]).to(device())
+        x = torch.stack([m.feature_extractor.preprocess(c) for c in crops[i:i + 16]]).to(device(), m.dtype)
         with torch.no_grad():
-            out += m(x).softmax(-1)[:, FAKE_INDEX].cpu().tolist()
+            out += m(x).float().softmax(-1)[:, FAKE_INDEX].cpu().tolist()
     return out
 
 

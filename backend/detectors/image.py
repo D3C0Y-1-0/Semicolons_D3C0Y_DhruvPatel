@@ -66,9 +66,11 @@ CLIP_MEAN, CLIP_STD = np.array([0.48145466, 0.4578275, 0.40821073]), np.array([0
 @functools.cache
 def univfd():
     import torch
-    from transformers import CLIPModel
+    from transformers import CLIPVisionModelWithProjection
     from detectors.audio import device
-    clip = CLIPModel.from_pretrained("openai/clip-vit-large-patch14").to(device()).eval()
+    # vision tower only (the text half is never used), fp16 on GPU: ~0.6 GB instead of ~1.7 GB
+    dtype = torch.float16 if device() == "cuda" else torch.float32
+    clip = CLIPVisionModelWithProjection.from_pretrained("openai/clip-vit-large-patch14", torch_dtype=dtype).to(device()).eval()
     fc = torch.nn.Linear(768, 1)
     fc.load_state_dict(torch.load(UNIVFD_FC, map_location="cpu"))
     return clip, fc.to(device()).eval()
@@ -92,7 +94,7 @@ def univfd_prob(path):
     crops = five_crops(Image.open(path).convert("RGB"))
     x = np.stack([((np.asarray(c, np.float32) / 255 - CLIP_MEAN) / CLIP_STD).transpose(2, 0, 1) for c in crops])
     with torch.no_grad():
-        feats = clip.get_image_features(pixel_values=torch.from_numpy(x).float().to(device()))
+        feats = clip(pixel_values=torch.from_numpy(x).to(device(), clip.dtype)).image_embeds.float()
         return float(torch.sigmoid(fc(feats)).mean())
 
 

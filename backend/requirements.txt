@@ -14,7 +14,7 @@ pyloudnorm
 speechbrain>=1.0
 faster-whisper
 insightface                 # Windows: needs "Microsoft C++ Build Tools" to compile (see README)
-onnxruntime                 # or onnxruntime-gpu with CUDA
+onnxruntime-gpu==1.23.2     # last PyPI build on CUDA 12 (matches torch cu126); 1.24+ need CUDA 13. No GPU: onnxruntime
 opencv-python
 pillow
 c2pa-python
