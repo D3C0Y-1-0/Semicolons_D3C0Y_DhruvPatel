@@ -38,21 +38,21 @@ export default function Live() {
   const alert = state ? { LOW: 0, MEDIUM: 0.5, HIGH: 1 }[state.band] : 0;
   return (
     <div className="space-y-8">
-      <div className="relative rounded-xl bg-night text-paper overflow-hidden h-72">
-        {running && <Suspense fallback={null}><Spectrogram3D alert={alert} className="absolute inset-0" /></Suspense>}
-        <div className="relative z-10 p-6 h-full flex flex-col">
-          <h2 className="wide text-3xl font-extrabold">Live call guard</h2>
-          <p className="text-paper/70 mt-1 max-w-md">{running ? "Listening alongside you. A reading lands every 3 seconds." : "Open the Meet, Zoom or Teams call in another tab, then share that tab here."}</p>
-          <div className="mt-auto flex flex-wrap items-end gap-3">
-            <label className="text-sm">The caller claims to be
-              <select value={claimed} onChange={(e) => setClaimed(e.target.value)} disabled={running} className="block mt-1 bg-night-2 border border-paper/25 rounded px-3 py-2 min-w-56">
+      <div className="relative frame dusk overflow-hidden h-80">
+        {running && <Suspense fallback={null}><Spectrogram3D alert={alert} className="absolute inset-x-0 bottom-0 top-[25%]" /></Suspense>}
+        <div className="relative z-10 p-6 sm:p-8 h-full flex flex-col">
+          <h2 className="text-5xl font-bold tracking-[-0.04em] text-white drop-shadow-[0_2px_24px_rgb(35_22_94/0.25)]">Live call guard</h2>
+          <p className="mt-2 max-w-md font-semibold">{running ? "Listening alongside you. A reading lands every 3 seconds." : "Open the Meet, Zoom or Teams call in another tab, then share that tab here."}</p>
+          <div className="mt-auto flex flex-wrap items-end gap-3 glass rounded-[1.75rem] p-3 self-start">
+            <label className="text-sm font-semibold pl-2">The caller claims to be
+              <select value={claimed} onChange={(e) => setClaimed(e.target.value)} disabled={running} className="block mt-1 bg-white/80 border border-white rounded-full px-4 py-2.5 min-w-56">
                 <option value="">Unknown</option>
                 {people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </label>
             {running
-              ? <button onClick={() => stop.current()} className="border border-paper/60 px-5 py-2.5 rounded font-semibold">Stop listening</button>
-              : <button onClick={start} className="bg-mint text-night px-5 py-2.5 rounded font-bold">Listen to a call tab</button>}
+              ? <button onClick={() => stop.current()} className="bg-white px-5 py-3 rounded-full font-bold">Stop listening</button>
+              : <button onClick={start} className="bg-night text-white px-6 py-3 rounded-full font-bold">Listen to a call tab</button>}
           </div>
         </div>
       </div>
@@ -62,12 +62,12 @@ export default function Live() {
         {state && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid lg:grid-cols-[auto_1fr] gap-10 items-start">
             <Stamp band={state.band} risk={state.risk} />
-            <div className="space-y-5 min-w-0">
+            <div className="space-y-5 min-w-0 glass rounded-[2rem] p-6">
               <p className="text-2xl max-w-prose">{state.summary}</p>
               <AnimatePresence mode="wait">
                 {state.challenge && (
                   <motion.p key={state.challenge} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
-                    className="text-xl font-bold border-l-4 border-stamp pl-4">Try this now: {state.challenge}</motion.p>
+                    className="text-xl font-bold rounded-2xl bg-night text-white px-5 py-4">Try this now: {state.challenge}</motion.p>
                 )}
               </AnimatePresence>
               {state.tactics.length > 0 && <p className="text-ink-soft">Heard: {state.tactics.map((t) => TACTIC[t]).join(", ")}</p>}

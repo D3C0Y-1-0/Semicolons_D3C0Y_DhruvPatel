@@ -1,6 +1,7 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { api, form } from "../lib/api.js";
+import Icon from "./Icons.jsx";
 
 export const BAND_TEXT = { LOW: "text-low", MEDIUM: "text-medium", HIGH: "text-high" };
 export const BAND_BORDER = { LOW: "border-low", MEDIUM: "border-medium", HIGH: "border-high" };
@@ -17,14 +18,23 @@ const STATUS = {
   confirmed_attack: "The real person says they did not send it. Treat this as an attack.",
 };
 
+// The verdict as a heat gauge: the number, its band, and where it sits on the cold-to-hot scale.
 export function Stamp({ band, risk, size = "text-7xl", className = "" }) {
   const reduce = useReducedMotion();
+  const r = Math.floor(risk);
   return (
-    <motion.div key={band + Math.floor(risk)} className={`stamp inline-block px-4 pt-3 pb-2 ${size} ${BAND_TEXT[band]} ${className}`}
-      initial={reduce ? false : { scale: 1.7, opacity: 0, rotate: -12 }} animate={{ scale: 1, opacity: 1, rotate: -4 }}
-      transition={{ type: "spring", stiffness: 520, damping: 22, mass: 0.9 }}>
-      {band}
-      <span className="block text-[0.24em] font-bold leading-tight mt-1 tnum">risk {Math.floor(risk)} / 100</span>
+    <motion.div key={band + r} className={`glass-strong rounded-[2rem] px-6 pt-4 pb-6 inline-flex flex-col min-w-[13rem] ${className}`}
+      initial={reduce ? false : { scale: 0.92, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 380, damping: 26 }}>
+      <span className={`text-base font-bold ${BAND_TEXT[band]}`}>{band}</span>
+      <span className={`${size} font-extrabold leading-[0.95] tracking-tight tnum ${BAND_TEXT[band]}`}>
+        {r}<span className="text-[0.28em] font-semibold text-ink-soft"> risk / 100</span>
+      </span>
+      <span className="relative mt-4 h-2.5 rounded-full heat-scale" aria-hidden>
+        <motion.span className="absolute top-1/2 size-5 -translate-y-1/2 -translate-x-1/2 rounded-full bg-white ring-[5px] ring-night shadow"
+          initial={reduce ? false : { left: "0%" }} animate={{ left: `${Math.min(97, Math.max(3, r))}%` }}
+          transition={{ type: "spring", stiffness: 90, damping: 18 }} />
+      </span>
     </motion.div>
   );
 }
@@ -132,7 +142,7 @@ export default function Verdict({ result: r, caseId, initialStatus = "open" }) {
         <Stamp band={r.band} risk={r.risk} />
         <div>
           <p className="wide text-3xl font-extrabold leading-tight">{r.band === "LOW" && r.synthetic_media ? "Synthetic media, but nothing risky is asked." : HEADLINE[r.band]}</p>
-          {r.synthetic_media && <p className="inline-block mt-2 text-sm font-bold text-high border border-high rounded px-2 py-0.5">Synthetic media detected</p>}
+          {r.synthetic_media && <p className="inline-block mt-2 text-sm font-bold text-white bg-high rounded-full px-3 py-1">Synthetic media detected</p>}
           <ul className="mt-3 space-y-1.5 max-w-prose">
             {[...r.signals.filter((x) => x.contribution > 0).slice(0, 4).map((x) => x.why), ...r.rules_fired.map((x) => "Policy: " + x)].map((w) => (
               <li key={w} className="flex gap-2.5"><span aria-hidden className={`${BAND_TEXT[r.band]} font-bold`}>!</span><span>{w[0].toUpperCase() + w.slice(1)}</span></li>
@@ -147,22 +157,36 @@ export default function Verdict({ result: r, caseId, initialStatus = "open" }) {
         </div>
       </header>
 
-      <section className={`border-l-4 ${BAND_BORDER[r.band]} bg-sheet rounded-r p-5 space-y-4`}>
-        <h3 className="text-lg font-bold">What to do now</h3>
-        <ul className="space-y-1.5">{r.recommended_actions.map((a) => <li key={a} className="flex gap-2"><span aria-hidden className={BAND_TEXT[r.band]}>■</span>{a}</li>)}</ul>
-        {r.challenge && <p className="text-lg font-semibold border-l-4 border-stamp pl-3">On the call, try this: {r.challenge}</p>}
+      <section className="glass-strong rounded-[2rem] p-6 sm:p-7 space-y-5">
+        <h3 className="text-xl font-bold">What to do now</h3>
+        <ul className="space-y-2">{r.recommended_actions.map((a) => <li key={a} className="flex gap-3 items-start"><span aria-hidden className={`mt-2 size-2 rounded-full shrink-0 ${r.band === "LOW" ? "bg-low" : r.band === "MEDIUM" ? "bg-medium" : "bg-high"}`} />{a}</li>)}</ul>
+        {r.challenge && <p className="text-lg font-semibold rounded-2xl bg-night text-white px-5 py-4">On the call, try this: {r.challenge}</p>}
         {caseId && (
           <>
             <AnimatePresence mode="wait">
               <motion.p key={status} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} aria-live="polite"
                 className={`font-semibold ${status === "confirmed_attack" ? "text-high" : status === "verified" ? "text-low" : "text-ink-soft"}`}>{STATUS[status]}</motion.p>
             </AnimatePresence>
-            <div className="flex flex-wrap gap-2">
-              {r.band !== "LOW" && <button onClick={verify} className="bg-stamp text-white px-4 py-2.5 rounded font-semibold hover:brightness-110">Ask the real person on Telegram</button>}
-              <button onClick={() => decide("yes")} className="border border-ink px-3 py-2.5 rounded hover:bg-paper">They confirmed it was them</button>
-              <button onClick={() => decide("no")} className="border border-high text-high px-3 py-2.5 rounded hover:bg-high/5">They didn't send it</button>
-              <button onClick={download} className="px-3 py-2.5 rounded underline underline-offset-4">Download CERT-In draft</button>
-            </div>
+            {(status === "open" || status === "verifying") && (
+              <div className="space-y-4">
+                {r.band !== "LOW" && <button onClick={verify} className="bg-night text-white pl-5 pr-2 py-2 rounded-full font-semibold hover:bg-night-2 inline-flex items-center gap-3">Ask the real person on Telegram<span className="orb size-8 bg-white text-night"><Icon name="arrow" className="size-4" /></span></button>}
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                  <span className="text-ink-soft mr-1">Checked another way, like a call to their registered number? Record their answer:</span>
+                  <button onClick={() => decide("yes")} className="bg-white/80 border border-white px-4 py-2 rounded-full font-semibold hover:bg-white">It was them</button>
+                  <button onClick={() => decide("no")} className="bg-white/80 border border-white text-high px-4 py-2 rounded-full font-semibold hover:bg-white">It wasn't them</button>
+                </div>
+              </div>
+            )}
+            {status !== "verified" && r.band !== "LOW" && (
+              <div className={`flex flex-wrap items-center gap-3 ${status === "confirmed_attack" ? "" : "text-sm"}`}>
+                <button onClick={download} className={status === "confirmed_attack"
+                  ? "bg-high text-white pl-5 pr-2 py-2 rounded-full font-semibold inline-flex items-center gap-3"
+                  : "font-semibold underline underline-offset-4"}>
+                  Download CERT-In incident report{status === "confirmed_attack" && <span className="orb size-8 bg-white text-high"><Icon name="arrow" className="size-4" /></span>}
+                </button>
+                <span className="text-ink-soft text-sm max-w-sm">A pre-filled draft for India's cyber-security agency, which needs incidents reported within 6 hours.</span>
+              </div>
+            )}
             {msg && <p className="text-sm text-high">{msg}</p>}
           </>
         )}
@@ -196,7 +220,7 @@ export default function Verdict({ result: r, caseId, initialStatus = "open" }) {
         <section>
           <h3 className="text-lg font-bold">The words, with manipulation underlined</h3>
           {r.message.tactics?.length > 0 && <p className="text-sm text-ink-soft mb-3">Found {r.message.tactics.map((t) => TACTIC[t]).join(", ")}. Hover an underline to see which.</p>}
-          <div className="bg-sheet border border-rule rounded p-5"><Highlighted text={r.message.text} spans={r.message.highlights} /></div>
+          <div className="glass-strong rounded-[2rem] p-6"><Highlighted text={r.message.text} spans={r.message.highlights} /></div>
         </section>
       )}
 

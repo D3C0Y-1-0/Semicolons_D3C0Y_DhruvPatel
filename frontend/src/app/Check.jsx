@@ -3,9 +3,10 @@ import { useEffect, useRef, useState } from "react";
 import Verdict from "../components/Verdict.jsx";
 import { api, form } from "../lib/api.js";
 import { SAMPLES } from "../lib/samples.js";
+import Icon from "../components/Icons.jsx";
 
 const CHANNELS = ["email", "whatsapp", "phone", "sms", "meet", "teams", "zoom"];
-const field = "w-full bg-sheet border border-rule rounded px-3 py-2.5 focus:border-ink outline-none";
+const field = "w-full bg-white/75 border border-white rounded-2xl px-4 py-3 focus:border-night/40 focus:bg-white outline-none";
 
 function DropZone({ file, setFile }) {
   const [over, setOver] = useState(false);
@@ -15,7 +16,7 @@ function DropZone({ file, setFile }) {
   return (
     <div onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)}
       onDrop={(e) => { e.preventDefault(); setOver(false); e.dataTransfer.files[0] && setFile(e.dataTransfer.files[0]); }}
-      className={`rounded border-2 border-dashed p-4 transition-colors ${over ? "border-ink bg-sheet" : "border-rule"}`}>
+      className={`rounded-[1.5rem] border-2 border-dashed p-5 transition-colors ${over ? "border-night bg-white" : "border-night/20 bg-white/40"}`}>
       {!file ? (
         <button type="button" onClick={() => input.current.click()} className="w-full text-left">
           <span className="font-semibold block">Drop a voice note, video or image</span>
@@ -60,13 +61,13 @@ export default function Check() {
 
   return (
     <div className="grid xl:grid-cols-[24rem_1fr] gap-12">
-      <form onSubmit={submit} className="space-y-5 xl:sticky xl:top-8 self-start">
+      <form onSubmit={submit} className="space-y-5 xl:sticky xl:top-6 self-start glass rounded-[2rem] p-5 sm:p-6">
         <div>
           <p className="text-sm font-semibold mb-2">Try a scenario</p>
           <div className="flex flex-wrap gap-1.5">
             {SAMPLES.map((s) => (
               <button type="button" key={s.name} onClick={() => setV({ ...v, text: s.text, channel: s.channel, sender: s.sender })}
-                className="text-sm px-3 py-1.5 rounded-full border border-ink/25 hover:border-ink bg-sheet">{s.name}</button>
+                className="text-sm font-semibold px-3.5 py-1.5 rounded-full border border-white bg-white/75 hover:bg-night hover:text-white hover:border-night">{s.name}</button>
             ))}
           </div>
         </div>
@@ -93,8 +94,8 @@ export default function Check() {
         <label className="block"><span className="font-semibold">From (address or number)</span>
           <input value={v.sender} onChange={set("sender")} className={`${field} mt-1`} placeholder="+91 98… or name@company.com" />
         </label>
-        <button disabled={busy} className="w-full bg-ink text-sheet font-bold py-3.5 rounded disabled:opacity-60 hover:bg-night-2">
-          {busy ? "Checking…" : "Check before I act"}
+        <button disabled={busy} className="w-full bg-night text-white font-bold pl-6 pr-2 py-2 rounded-full disabled:opacity-60 hover:bg-night-2 flex items-center justify-between text-lg">
+          {busy ? "Checking…" : "Check before I act"}<span className="orb size-10 bg-white text-night"><Icon name="arrow" /></span>
         </button>
         {busy && file && <p className="text-sm text-ink-soft">The first media check loads the models; it can take a minute.</p>}
         {error && <p className="text-sm text-high" role="alert">{error}</p>}
@@ -104,17 +105,17 @@ export default function Check() {
         <AnimatePresence mode="wait">
           {busy ? (
             <motion.div key="busy" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pt-8">
-              <p className="wide text-3xl font-bold">Checking voice, face, words and request…</p>
-              <div className="mt-6 h-1 bg-rule rounded overflow-hidden"><motion.div className="h-full bg-ink w-1/3" animate={{ x: ["-100%", "300%"] }} transition={{ repeat: Infinity, duration: 1.4, ease: "easeInOut" }} /></div>
+              <p className="text-4xl font-bold tracking-tight">Checking voice, face, words and request…</p>
+              <div className="mt-6 h-2.5 heat-scale rounded-full overflow-hidden opacity-80"><motion.div className="h-full bg-white/80 w-1/4 rounded-full" animate={{ x: ["-100%", "300%"] }} transition={{ repeat: Infinity, duration: 1.4, ease: "easeInOut" }} /></div>
             </motion.div>
           ) : result ? (
             <motion.div key={result.case_id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <Verdict result={result} caseId={result.case_id} />
             </motion.div>
           ) : (
-            <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pt-4 max-w-prose">
-              <h2 className="wide text-4xl font-extrabold leading-tight">Got a request for money, an OTP or files?</h2>
-              <p className="mt-4 text-lg text-ink-soft">Paste it, drop the voice note or video, and say who it claims to be from. You get a verdict, the reasons behind it, and the safest way to verify, before you act.</p>
+            <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="frame dusk relative overflow-hidden min-h-[26rem] p-8 sm:p-12 flex flex-col justify-end">
+              <h2 className="text-5xl sm:text-6xl font-bold tracking-[-0.04em] leading-[0.95] text-white max-w-[14ch] drop-shadow-[0_2px_24px_rgb(35_22_94/0.25)]">Got a request for money, an OTP or files?</h2>
+              <p className="mt-5 text-lg max-w-prose glass rounded-[1.5rem] p-5">Paste it, drop the voice note or video, and say who it claims to be from. You get a verdict, the reasons behind it, and the safest way to verify, before you act.</p>
             </motion.div>
           )}
         </AnimatePresence>

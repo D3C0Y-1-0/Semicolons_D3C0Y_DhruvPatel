@@ -20,7 +20,7 @@ export default function Cases() {
 
   if (open) return (
     <div className="space-y-6">
-      <button onClick={() => setOpen(null)} className="underline underline-offset-4">Back to the queue</button>
+      <button onClick={() => setOpen(null)} className="glass-strong rounded-full px-5 py-2.5 font-semibold">Back to the queue</button>
       <Verdict result={open.result} caseId={open.id} initialStatus={open.status} />
     </div>
   );
@@ -37,30 +37,30 @@ export default function Cases() {
   return (
     <div className="space-y-10">
       <div>
-        <h2 className="wide text-4xl font-extrabold">Security queue</h2>
+        <h2 className="text-5xl font-bold tracking-[-0.04em]">Security queue</h2>
         <p className="text-ink-soft mt-2">Every check lands here. It refreshes every few seconds, so a NO on Telegram shows up while you watch.</p>
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 border-y-2 border-ink divide-x divide-rule">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {tiles.map(([k, n, label, color]) => (
           <button key={k} onClick={() => setFilter(filter === k ? "all" : k)} aria-pressed={filter === k}
-            className={`text-left px-5 py-5 ${filter === k ? "bg-sheet" : "hover:bg-sheet/60"}`}>
-            <motion.span key={n} initial={{ opacity: 0.3 }} animate={{ opacity: 1 }} className={`wide block text-4xl font-extrabold tnum ${color}`}>{n}</motion.span>
-            <span className="text-sm text-ink-soft">{label}</span>
+            className={`text-left px-6 py-5 rounded-[1.75rem] transition-colors ${filter === k ? "bg-night text-white" : "glass hover:bg-white/80"}`}>
+            <motion.span key={n} initial={{ opacity: 0.3 }} animate={{ opacity: 1 }} className={`block text-5xl font-extrabold tracking-tight tnum ${filter === k ? "text-white" : color}`}>{n}</motion.span>
+            <span className={`text-sm font-semibold ${filter === k ? "text-white/75" : "text-ink-soft"}`}>{label}</span>
           </button>
         ))}
       </div>
 
       {!shown.length ? <p className="text-ink-soft">{cases.length ? "Nothing matches this filter." : "No checks yet. Run one from Check a message."}</p> : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto glass rounded-[2rem] p-2 sm:p-4">
           <table className="w-full text-left border-collapse">
             <thead><tr className="text-sm text-ink-soft border-b border-ink/40">
-              <th className="py-2 pr-6 font-medium">When</th><th className="pr-6 font-medium">Verdict</th><th className="pr-6 font-medium">Status</th><th className="font-medium">What happened</th>
+              <th className="py-2 px-3 font-medium">When</th><th className="pr-6 font-medium">Verdict</th><th className="pr-6 font-medium">Status</th><th className="font-medium">What happened</th>
             </tr></thead>
             <tbody>{shown.map((c) => (
               <tr key={c.id} tabIndex={0} onKeyDown={async (e) => e.key === "Enter" && setOpen(await api(`/cases/${c.id}`))}
-                onClick={async () => setOpen(await api(`/cases/${c.id}`))} className="border-b border-rule hover:bg-sheet cursor-pointer align-top">
-                <td className="py-4 pr-6 text-sm whitespace-nowrap tnum">{new Date(c.created * 1000).toLocaleString([], { dateStyle: "short", timeStyle: "short" })}</td>
-                <td className={`pr-6 py-4 whitespace-nowrap narrow text-xl font-extrabold ${BAND_TEXT[c.band]}`}>{c.band} {Math.round(c.risk)}</td>
+                onClick={async () => setOpen(await api(`/cases/${c.id}`))} className="border-b border-white/70 hover:bg-white/70 cursor-pointer align-top">
+                <td className="py-4 px-3 text-sm whitespace-nowrap tnum">{new Date(c.created * 1000).toLocaleString([], { dateStyle: "short", timeStyle: "short" })}</td>
+                <td className={`pr-6 py-4 whitespace-nowrap text-xl font-extrabold tnum ${BAND_TEXT[c.band]}`}>{c.band} {Math.round(c.risk)}</td>
                 <td className={`pr-6 py-4 text-sm whitespace-nowrap ${c.status === "confirmed_attack" ? "text-high font-bold" : ""}`}>{STATUS[c.status]}</td>
                 <td className="py-4 text-sm max-w-2xl">
                   <span className="line-clamp-2">{c.summary}</span>

@@ -30,11 +30,11 @@ export default function MathsLab() {
 
   return (
     <div className="grid lg:grid-cols-[1fr_1.1fr] gap-12 items-start">
-      <div className="space-y-6">
+      <div className="space-y-6 glass rounded-[2rem] p-6 sm:p-7">
         <div className="flex flex-wrap gap-2" role="group" aria-label="Scenarios">
           {Object.keys(PRESETS).map((k) => (
             <button key={k} onClick={() => pick(k)} aria-pressed={preset === k}
-              className={`px-3.5 py-2 rounded-full border text-sm font-semibold ${preset === k ? "bg-ink text-sheet border-ink" : "border-ink/30 hover:border-ink"}`}>{k}</button>
+              className={`px-4 py-2 rounded-full border text-sm font-semibold ${preset === k ? "bg-night text-white border-night" : "bg-white/70 border-white hover:bg-white"}`}>{k}</button>
           ))}
         </div>
         <div className="space-y-3">
@@ -51,19 +51,19 @@ export default function MathsLab() {
           <div className="flex flex-wrap gap-1.5">
             {Object.keys(IMPACT).map((k) => (
               <button key={k} onClick={() => { setPreset(""); setAction(k); }} aria-pressed={action === k}
-                className={`px-3 py-1.5 rounded text-sm border ${action === k ? "bg-ink text-sheet border-ink" : "border-rule bg-sheet hover:border-ink"}`}>{IMPACT_LABEL[k]}</button>
+                className={`px-3.5 py-1.5 rounded-full text-sm border font-semibold ${action === k ? "bg-night text-white border-night" : "border-white bg-white/70 hover:bg-white"}`}>{IMPACT_LABEL[k]}</button>
             ))}
           </div>
         </fieldset>
         <label className="flex items-center gap-3 text-sm font-medium cursor-pointer">
-          <input type="checkbox" checked={unreg} onChange={(e) => { setPreset(""); setUnreg(e.target.checked); }} className="size-4 accent-ink" />
+          <input type="checkbox" checked={unreg} onChange={(e) => { setPreset(""); setUnreg(e.target.checked); }} className="size-4 accent-night" />
           Arrives from a number or app the person doesn't normally use
         </label>
       </div>
 
-      <div className="bg-sheet border border-rule rounded-lg p-6 sm:p-8 space-y-6 lg:sticky lg:top-8">
+      <div className="glass-strong rounded-[2rem] p-6 sm:p-8 space-y-6 lg:sticky lg:top-8">
         <div className="flex items-center gap-6 flex-wrap">
-          <Stamp band={r.band} risk={r.risk} size="text-6xl" />
+          <Stamp band={r.band} risk={r.risk} size="text-6xl" className="!bg-white" />
           <p className="text-sm text-ink-soft tnum leading-relaxed">
             Evidence {evidence >= 0 ? "+" : ""}{evidence.toFixed(2)} and prior {r.prior_logodds} give a threat probability of {(r.threat * 100).toFixed(1)}%.
             <br />× impact {r.impact} = <b className="text-ink">{raw.toFixed(1)}</b>
