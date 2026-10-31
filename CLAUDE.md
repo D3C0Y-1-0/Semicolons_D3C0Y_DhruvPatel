@@ -79,6 +79,11 @@ Verified on the team laptop (RTX 4050 6 GB, i5-13450HX, Python 3.11 venv in `bac
 - `/analyze` with media: TTS "CFO" voice note HIGH 100 with transcript; same voice compressed is linked as one campaign; real speech LOW 0; face-swap video HIGH 100 (GenD 0.979 over 32 frames, lip-sync 0.64); face-swap still with no request LOW + "Synthetic media detected" badge.
 - Warm timings: 20 s voice note about 2.5 s, 20 s video call about 4.5 s (was 99 s before the fp16 and GPU-face fixes: VRAM was spilling into system RAM). The first check after a backend start loads models, about a minute.
 
+Pushed to GitHub (branch `d3coy-trustcheck`), 31 Oct 2026:
+- Full browser pass: four Check scenarios (CFO wire HIGH 98, digital arrest HIGH with 1930, CEO OTP HIGH, harmless LOW 0), decision buttons, queue, Trust Graph.
+- Live call fixed: it used to transcribe 3 s fragments with no context ("45 lakh" heard as "45 lock"), so a cloned CFO stayed LOW 20 live. It now re-transcribes the last 90 s as one piece with an Indian-money prompt: HIGH 99.9 within 13 s, real speech LOW 0, about 1.2 s per update.
+- Pitch deck `docs/TrustCheck_pitch.pptx` (10 slides, speaker notes, only measured numbers) and run-sheet `docs/DEMO.md`.
+
 ## Run
 
 ```powershell
@@ -91,7 +96,7 @@ Setup details, Windows gotchas (ffmpeg falls back to the imageio-ffmpeg binary, 
 
 1. Record consented team voices; clone them (Chatterbox, F5-TTS, XTTS-v2); film Deep-Live-Cam swaps; fill `eval/manifest.csv`; run `python ../eval/run_eval.py ../eval/manifest.csv --compress`; tune VOICE_THRESHOLD, FACE_THRESHOLD and weights; put the real numbers in the deck.
 2. Telegram bot token in `.env`; each enrolled person sends /start; test the live NO-tap flow end to end.
-3. Pitch deck (10 slides; outline in the master plan) and a pre-recorded backup demo video.
+3. Once eval numbers exist, replace the left column of deck slide 9 with them; record the backup demo video following `docs/DEMO.md`.
 4. Optional: XLS-R + SLS as a second audio model (needs fairseq + torch 1.13, so run it as a separate service), SyncNet in place of the heuristic lip-sync check, Grad-CAM heatmaps.
 
 ## Conventions

@@ -132,7 +132,7 @@ After that, hard policy rules set a minimum. For example, a payment request from
 ## 8. Before the demo
 
 - Calibrate: put labelled samples in `eval/manifest.csv` (copy `manifest.example.csv`), run `python ..\eval\run_eval.py ..\eval\manifest.csv --compress`, then tune `VOICE_THRESHOLD`, `FACE_THRESHOLD` and the weights.
-- Read `pellav2_infer.py` once (it's downloaded code) and pin its commit hash in `PELLAV2_REVISION`.
+- Follow the run-sheet in `docs/DEMO.md` (warm-up, Telegram, fallbacks); the deck is `docs/TrustCheck_pitch.pptx`.
 - Record the full demo as a backup video.
 - The backend has no login and allows any origin. That's fine on a laptop for the demo; never expose it to the internet as is.
 
