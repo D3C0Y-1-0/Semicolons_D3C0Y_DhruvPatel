@@ -87,7 +87,7 @@ SCAM_TYPES = {  # key: (label, topic, hook or None, what to do)
                            r"\b(bank|fraud (department|team)|customer care|rbi|credit card (department|team))\b.{0,80}\b(otp|cvv|pin|card number|expiry)\b",
                            None, "Your bank will never ask for an OTP, CVV or PIN. Hang up and call the number on your card."),
     "delivery_customs": ("Fake parcel / customs fee",
-                         r"\b(parcel|package|shipment|courier|consignment|india ?post|fedex|dhl|delivery)\b.{0,80}\b(held|on hold|seized|returned|failed|pending|stuck|undeliver\w*|incomplete|wrong address|outstanding|duty|release|could not be delivered|not delivered)",
+                         r"\b(parcel|package|shipment|courier|consignment|india ?post|fedex|dhl|ups|usps|delivery)\b.{0,80}\b(held|on hold|seized|returned|failed|pending|stuck|undeliver\w*|incomplete|wrong address|invalid|outstanding|duty|release|could not be delivered|not delivered)",
                          PAY_CUE + "|" + LINK_CUE + r"|\baddress\b", "Couriers don't collect fees through random links. Check the tracking number on the courier's official site."),
     "utility_disconnect": ("Electricity / bill disconnection",
                            r"\b(electricity|power|bijli|gas|light)\b.{0,60}\b(disconnect\w*|cut|band|kat|suspend\w*)",
@@ -96,8 +96,10 @@ SCAM_TYPES = {  # key: (label, topic, hook or None, what to do)
                        r"\be-?challan\b|\btraffic (fine|challan)\b|\b(income ?tax|it) refund\b|\breward points?\b|\bpoints? (will )?expir",
                        LINK_CUE + "|" + PAY_CUE, "Check challans only on parivahan.gov.in and refunds only on incometax.gov.in."),
     "lottery_prize": ("Lottery / prize bait",
-                      r"\b(lottery|lucky draw|kbc|jackpot|lucky winner|prize money)\b|\byou (have )?won\b",
-                      PAY_CUE + "|" + LINK_CUE + r"|\bclaim\b|\bcall\b|whats ?app", "You can't win a draw you never entered. Never pay to receive a prize."),
+                      r"\b(lottery|lucky draw|prize draw|kbc|jackpot|lucky winner|prize money|giveaway)\b|\byou (have )?won\b"
+                      r"|\bchance to win\b|\bwin (a|an|the) (free|brand new|new)\b|\bfree (iphone|phone|laptop|gift card|voucher)\b",
+                      PAY_CUE + "|" + LINK_CUE + r"|\bclaim\b|\bcall\b|whats ?app|\benter\b|\bsurvey\b|\bregister\b",
+                      "You can't win a draw you never entered. Never pay or fill in a 'survey' to receive a prize."),
     "job_task": ("Task / part-time job scam",
                  r"\b(part[- ]?time|work from home|daily (income|earning)|earn (rs\.?|₹|inr)?\s?[\d,]+|like (youtube )?videos?|rate (hotels|products)|online tasks?|prepaid tasks?)\b",
                  PAY_CUE + r"|\btasks?\b|telegram|whats ?app|registration", "Real jobs never ask you to pay. 'Pay to unlock tasks' always ends in a loss."),
@@ -173,6 +175,7 @@ BRANDS = {  # name in a domain -> its real domains
     "flipkart": ("flipkart.com",), "indiapost": ("indiapost.gov.in",), "incometax": ("incometax.gov.in",), "uidai": ("uidai.gov.in",),
     "aadhaar": ("uidai.gov.in",), "epfo": ("epfindia.gov.in",), "npci": ("npci.org.in",), "parivahan": ("parivahan.gov.in",),
     "echallan": ("parivahan.gov.in",), "irctc": ("irctc.co.in",), "airtel": ("airtel.in",), "jio": ("jio.com",), "rbi": ("rbi.org.in",),
+    "ups": ("ups.com",), "usps": ("usps.com",), "paypal": ("paypal.com",), "hsbc": ("hsbc.co.in", "hsbc.com"),
     "whatsapp": ("whatsapp.com",), "instagram": ("instagram.com",), "facebook": ("facebook.com",), "dhl": ("dhl.com", "dhl.co.in"),
     "fedex": ("fedex.com",), "bluedart": ("bluedart.com",), "delhivery": ("delhivery.com",), "microsoft": ("microsoft.com", "live.com"),
     "apple": ("apple.com",), "icloud": ("icloud.com",), "google": ("google.com",), "tatapower": ("tatapower.com",), "netflix": ("netflix.com",), "bescom": ("bescom.co.in",),
@@ -249,7 +252,7 @@ def link_risk(url, online=None):
     if "@" in (p.netloc or ""):
         found.append((0.8, "hides the real address behind an @ sign"))
     for brand, real in BRANDS.items():
-        if re.search(rf"(^|[.\-]){brand}", host) and not any(_is(host, r) for r in real):
+        if re.search(rf"(^|[.\-]){brand}" + (r"([.\-]|$)" if len(brand) <= 4 else ""), host) and not any(_is(host, r) for r in real):
             found.append((0.92, f"uses the name {brand.upper()} but isn't its real site ({real[0]})"))
             break
     org = lookalike_of(host)
@@ -589,6 +592,8 @@ def demo():
         ("Hi mom this is my new number, phone broke. Need Rs 20,000 urgently for a bill, can you send?", "family_emergency", "payment"),
         ("Your traffic e-challan of Rs 500 is pending. Pay now at echallan-parivahan.cc to avoid court.", "challan_refund", "payment"),
         ("For the job offer please send your Aadhaar card, PAN card and a selfie on this number.", "personal_data", "personal_info"),
+        ("You've been selected to enter the UPS prize draw this week! Complete a short survey and you will have the chance to win a FREE iPhone! Enter here: ups.website.com/12345678", "lottery_prize", "payment_high"),
+        ("U.S. Post: You have a USPS parcel being cleared, due to the detection of an invalid zip code address, the parcel can't be delivered. Update here: usps-redeliver.top/track", "delivery_customs", "click_link"),
         ("prince of wales has decided donate it part of the wealth, u have been chosen as the lucky one, send 1 lakh inr to me to open a base account in london", "windfall", "payment_high"),
     ]
     for text, kind, act in scams:

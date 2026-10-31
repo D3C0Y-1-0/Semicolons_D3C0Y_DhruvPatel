@@ -3,6 +3,7 @@ import asyncio
 import datetime as dt
 import os
 import random
+import re
 import shutil
 import tempfile
 import threading
@@ -69,10 +70,31 @@ def screenshot_text(path):
         if not _ocr:
             from rapidocr_onnxruntime import RapidOCR
             _ocr.append(RapidOCR())
-        res, _ = _ocr[0](cv2.imread(path))
-        return "\n".join(r[1] for r in res or [] if r[2] >= 0.5)
+        img = cv2.imread(path)
+        if min(img.shape[:2]) < 600:  # small phone crops read better enlarged
+            img = cv2.resize(img, None, fx=3, fy=3, interpolation=cv2.INTER_CUBIC)
+        res, _ = _ocr[0](img)
+        return "\n".join(respace(r[1]) for r in res or [] if r[2] >= 0.5)
     except Exception:  # OCR not installed or unreadable image: fall back to the image checks
         return ""
+
+
+SHORT_WORDS = {"a", "i", "u", "to", "of", "in", "is", "it", "on", "be", "at", "by", "we", "he", "an", "as", "or", "if", "me",
+               "my", "up", "no", "so", "do", "go", "us", "am", "ok", "ve", "ll", "re", "s", "t", "d", "m"}
+
+
+def respace(line):
+    """The OCR model often drops English spaces ('theUPSprizedrawthisweek'). Put them back with wordninja, but only when
+    every piece is a plausible English word, so glued Hinglish ('Aapkabijli') is left alone. Links and numbers untouched."""
+    try:
+        import wordninja
+    except ImportError:
+        return line
+
+    def fix(m):
+        parts = wordninja.split(m.group(0))
+        return " ".join(parts) if all(len(p) > 2 or p.lower() in SHORT_WORDS for p in parts) else m.group(0)
+    return " ".join(tok if re.search(r"[./@:]\w", tok) else re.sub(r"[A-Za-z']{9,}", fix, tok) for tok in line.split())
 
 
 def qr_codes(path):
