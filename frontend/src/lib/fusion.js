@@ -30,3 +30,18 @@ export function fuse(signals, action = "none", facts = {}) {
   rows.sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution));
   return { risk, band: bandOf(risk), threat: t, impact: IMPACT[action], action, signals: rows, rules_fired: rules, prior_logodds: Math.round(BIAS * 1000) / 1000 };
 }
+
+// Self-check, same worked examples as backend/fusion.py: node src/lib/fusion.js (never runs in the browser)
+if (typeof process !== "undefined" && process.argv?.[1]?.endsWith("fusion.js")) {
+  const sig = (signal, score) => ({ signal, score });
+  const ok = (cond, msg) => { if (!cond) throw new Error(msg); };
+  const a = fuse([sig("audio_spoof", 0.88), sig("voice_mismatch", 0.85), sig("face_video", 0.74), sig("message_tactics", 0.92),
+    sig("context_anomaly", 0.9), sig("lookalike_domain", 0.95)], "payment_high", { unregistered_channel: true });
+  ok(a.risk === 99.9 && a.band === "HIGH", `A ${a.risk}`);
+  const b = fuse([sig("audio_spoof", 0.88), sig("voice_mismatch", 0.85), sig("face_video", 0.74), sig("message_tactics", 0.1)], "none");
+  ok(b.risk === 9.8 && b.band === "LOW", `B ${b.risk}`);
+  const c = [sig("audio_spoof", 0.3), sig("voice_mismatch", 0.2), sig("face_video", 0.4), sig("message_tactics", 0.92), sig("context_anomaly", 0.9)];
+  ok(fuse(c, "payment_high").risk === 17.3, `C maths ${fuse(c, "payment_high").risk}`);
+  ok(fuse(c, "payment_high", { unregistered_channel: true, new_beneficiary: true }).risk === 60, "C rule");
+  console.log("fusion.js ok: A=99.9 HIGH, B=9.8 LOW, C=17.3 -> HIGH by rule");
+}

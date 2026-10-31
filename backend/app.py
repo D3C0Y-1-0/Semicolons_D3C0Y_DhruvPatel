@@ -170,7 +170,7 @@ def stats():
 
 
 @app.post("/enroll")
-async def enroll(name: str = Form(...), role: str = Form(""), email: str = Form(""), phone: str = Form(""),
+async def enroll(id: str = Form(None), name: str = Form(...), role: str = Form(""), email: str = Form(""), phone: str = Form(""),
                  telegram_chat_id: str = Form(""), channels: str = Form("email"), work_start: int = Form(9),
                  work_end: int = Form(19), approval_limit: float = Form(0), usual_requests: str = Form("information"),
                  voice: UploadFile = File(None), photo: UploadFile = File(None)):
@@ -190,11 +190,12 @@ async def enroll(name: str = Form(...), role: str = Form(""), email: str = Form(
             if p:
                 os.remove(p)
     split = lambda s: [x.strip().lower() for x in s.split(",") if x.strip()]
-    pid = db.add_person(name=name, role=role, email=email, phone=phone, telegram_chat_id=telegram_chat_id,
+    pid = db.add_person(id=id or None, name=name, role=role, email=email, phone=phone, telegram_chat_id=telegram_chat_id,
                         channels=split(channels), work_start=work_start, work_end=work_end,
                         approval_limit=approval_limit, usual_requests=split(usual_requests),
                         voice_emb=voice_emb, face_emb=face_emb)
-    return {"id": pid, "voice_enrolled": bool(voice_emb), "face_enrolled": bool(face_emb)}
+    p = db.get_person(pid)
+    return {"id": pid, "voice_enrolled": bool(p["voice_emb"]), "face_enrolled": bool(p["face_emb"])}
 
 
 @app.get("/people")

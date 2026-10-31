@@ -4,6 +4,7 @@ uvicorn[standard]
 python-multipart
 python-dotenv
 numpy
+imageio-ffmpeg              # bundled ffmpeg fallback when ffmpeg isn't on PATH
 huggingface_hub
 transformers==4.56.2        # GenD tested version
 # pellav2's downloaded script imports these at load time

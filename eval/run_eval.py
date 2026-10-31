@@ -42,7 +42,7 @@ def score(row, path):
 
 def compress(path):
     out = tempfile.mktemp(suffix=".ogg")
-    subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", path, "-vn", "-ac", "1", "-c:a", "libopus", "-b:a", "16k", out], check=True)
+    subprocess.run([audio.ffmpeg_exe(), "-nostdin", "-v", "error", "-y", "-i", path, "-vn", "-ac", "1", "-c:a", "libopus", "-b:a", "16k", out], check=True)
     return out
 
 

@@ -41,7 +41,10 @@ def _person(row):
 
 
 def add_person(**p):
+    """Insert, or update when id exists: fields passed as None (e.g. no new voice sample) keep their stored value."""
     pid = p.get("id") or uuid.uuid4().hex[:8]
+    old = get_person(pid) or {}
+    p = {**old, **{k: v for k, v in p.items() if v is not None}}
     for k in ("channels", "usual_requests", "voice_emb", "face_emb"):
         if p.get(k) is not None:
             p[k] = json.dumps(p[k])

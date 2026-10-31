@@ -6,6 +6,7 @@ and an error string, and the rest of the pipeline keeps working.
 import functools
 import importlib.util
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -28,9 +29,18 @@ def device():
     return "mps" if getattr(torch.backends, "mps", None) and torch.backends.mps.is_available() else "cpu"
 
 
+@functools.cache
+def ffmpeg_exe():
+    """ffmpeg on PATH, else the binary bundled with the imageio-ffmpeg wheel (Windows laptops without winget)."""
+    if shutil.which("ffmpeg"):
+        return "ffmpeg"
+    import imageio_ffmpeg
+    return imageio_ffmpeg.get_ffmpeg_exe()
+
+
 def load_audio(path):
-    """Any audio or video file -> mono 16 kHz float32. Needs ffmpeg on PATH."""
-    out = subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-i", str(path), "-ac", "1", "-ar", str(SR), "-f", "f32le", "-"],
+    """Any audio or video file -> mono 16 kHz float32."""
+    out = subprocess.run([ffmpeg_exe(), "-nostdin", "-v", "error", "-i", str(path), "-ac", "1", "-ar", str(SR), "-f", "f32le", "-"],
                          capture_output=True, check=True).stdout
     return np.frombuffer(out, np.float32).copy()
 

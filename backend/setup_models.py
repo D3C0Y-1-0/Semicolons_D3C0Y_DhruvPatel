@@ -22,10 +22,10 @@ def step(name):
     return wrap
 
 
-@step("ffmpeg on PATH")
+@step("ffmpeg (PATH or imageio-ffmpeg)")
 def _():
-    import shutil
-    assert shutil.which("ffmpeg"), "install ffmpeg (winget install Gyan.FFmpeg) and reopen the terminal"
+    from detectors import audio
+    return audio.ffmpeg_exe()
 
 
 @step("Message classifier (trained)")
