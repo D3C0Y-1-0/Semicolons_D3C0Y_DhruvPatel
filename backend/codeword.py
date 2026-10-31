@@ -24,7 +24,8 @@ assert len(WORDS) == 64
 def phrase(secret, t=None):
     step = int((time.time() if t is None else t) // STEP)
     h = hmac.new(bytes.fromhex(secret), str(step).encode(), hashlib.sha256).digest()
-    return f"{WORDS[h[0] % 64]} {WORDS[h[1] % 64]}"
+    a = h[0] % 64
+    return f"{WORDS[a]} {WORDS[(a + 1 + h[1] % 63) % 64]}"  # never the same word twice ("kitten kitten")
 
 
 def seconds_left(t=None):
@@ -42,6 +43,7 @@ def demo():
     s = "00" * 16
     p = phrase(s, 1000)
     assert check(s, p.upper() + "!", 1000) and check(s, p, 1000 + STEP) and not check(s, p, 1000 + 3 * STEP)
+    assert all(len(set(phrase(s, k * STEP).split())) == 2 for k in range(5000))
     print("codeword ok:", p)
 
 
