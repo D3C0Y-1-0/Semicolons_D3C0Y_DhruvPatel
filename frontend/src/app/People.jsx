@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, form } from "../lib/api.js";
+import { SendLinks } from "../components/Defense.jsx";
 
 const field = "w-full bg-white/80 border border-white rounded-xl px-4 py-2.5 mt-1 focus:border-night/40 outline-none";
 const Tick = ({ on, label }) => <span className={`rounded-full px-3 py-1 text-xs font-bold ${on ? "bg-low text-white" : "bg-white/70 text-ink-soft"}`}>{on ? "✓" : "–"} {label}</span>;
@@ -8,7 +9,8 @@ export default function People() {
   const [people, setPeople] = useState([]);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
-  const [edit, setEdit] = useState(null); // existing person being updated (adds Telegram id, voice or face), else new
+  const [edit, setEdit] = useState(null); // existing person being updated (adds phone, voice or face), else new
+  const [invite, setInvite] = useState({}); // person id -> delivery of their code-word page
   const load = () => api("/people").then(setPeople).catch(() => {});
   useEffect(() => { load(); }, []);
 
@@ -23,6 +25,11 @@ export default function People() {
     } catch (err) { setMsg(err.message); } finally { setBusy(false); }
   }
 
+  const sendInvite = async (p) => {
+    try { const d = await api(`/people/${p.id}/invite`, { method: "POST" }); setInvite((v) => ({ ...v, [p.id]: d })); }
+    catch (err) { setInvite((v) => ({ ...v, [p.id]: { errors: [err.message] } })); }
+  };
+
   const input = (name, label, props = {}) => <label className="block text-sm font-semibold">{label}<input name={name} className={field} {...props} /></label>;
 
   return (
@@ -36,8 +43,10 @@ export default function People() {
               <div className="flex items-center gap-4"><span className="orb size-14 bg-night text-white text-lg font-bold shrink-0">{p.name.split(" ").map((w) => w[0]).join("").slice(0, 2)}</span><div><p className="text-xl font-bold">{p.name}</p><p className="text-ink-soft">{p.role}</p></div></div>
               <div className="text-sm space-y-1.5">
                 <p>Uses {p.channels?.join(", ") || "no channels set"}, usually {p.work_start}:00 to {p.work_end}:00. Approves up to ₹{Number(p.approval_limit || 0).toLocaleString("en-IN")}.</p>
-                <p className="flex flex-wrap gap-2"><Tick on={p.voice_enrolled} label="voiceprint" /><Tick on={p.face_enrolled} label="face" /><Tick on={!!p.telegram_chat_id} label="Telegram for verification" /></p>
+                <p className="flex flex-wrap gap-2"><Tick on={p.voice_enrolled} label="voiceprint" /><Tick on={p.face_enrolled} label="face" /><Tick on={!!(p.phone || p.email)} label="WhatsApp / SMS / email for verification" />{p.telegram_chat_id && <Tick on label="Telegram" />}</p>
+                <button onClick={() => sendInvite(p)} className="font-semibold underline underline-offset-4">{invite[p.id] ? "Send again" : "Send their code-word page"}</button>
               </div>
+              {invite[p.id] && <div className="sm:col-span-2"><SendLinks delivery={invite[p.id]} who={p.name.split(" ")[0]} qr={invite[p.id].link} qrLabel={`${p.name.split(" ")[0]} scans this to open their page`} /></div>}
             </li>
           ))}</ul>
         )}
@@ -56,8 +65,8 @@ export default function People() {
         {input("name", "Name", { required: true, defaultValue: edit?.name })}
         <div className="grid grid-cols-2 gap-3">{input("role", "Role", { placeholder: "CFO", defaultValue: edit?.role })}{input("approval_limit", "Approval limit (₹)", { type: "number", min: 0, defaultValue: edit?.approval_limit })}</div>
         {input("email", "Work email", { type: "email", defaultValue: edit?.email })}
-        {input("phone", "Registered phone", { defaultValue: edit?.phone })}
-        {input("telegram_chat_id", "Telegram chat id", { placeholder: "They send /start to the bot to get it", defaultValue: edit?.telegram_chat_id })}
+        {input("phone", "Registered mobile (WhatsApp / SMS)", { defaultValue: edit?.phone, placeholder: "98765 43210" })}
+        {input("telegram_chat_id", "Telegram chat id (optional)", { placeholder: "Only if they use Telegram: they send /start to the bot", defaultValue: edit?.telegram_chat_id })}
         {input("channels", "Channels they use for work", { defaultValue: edit?.channels?.join(",") ?? "email,teams" })}
         {input("usual_requests", "Requests they normally make", { defaultValue: edit?.usual_requests?.join(",") ?? "information" })}
         <div className="grid grid-cols-2 gap-3">{input("work_start", "Day starts (hour, 0–23)", { type: "number", min: 0, max: 23, step: 1, required: true, defaultValue: edit?.work_start ?? 9 })}{input("work_end", "Day ends (hour, 0–23)", { type: "number", min: 0, max: 23, step: 1, required: true, defaultValue: edit?.work_end ?? 19 })}</div>

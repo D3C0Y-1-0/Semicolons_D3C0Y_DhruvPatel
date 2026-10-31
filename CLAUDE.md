@@ -32,12 +32,13 @@ Worked examples (must stay true; both `backend/fusion.py` and `frontend/src/lib/
 Headline four ("we fight back"), all built and tested 31 Oct:
 1. **Decoy Mode**: on a HIGH case, scripted replies play a confused victim ("what exact name should I write as the beneficiary?") so the scammer reveals bank account, IFSC, UPI id, phone. English or Hinglish (auto-detected). Every scammer reply is mined. `backend/mules.py` `decoy_turn`, `POST /cases/{id}/decoy` (form `scammer`), state stored in `result.decoy`. UI: `DecoyPanel` in `frontend/src/components/Defense.jsx`.
 2. **Mule blocklist**: identifiers from decoys and confirmed attacks (Telegram NO or the manual "It wasn't them") go in SQLite table `mules`. Any later message (or live-call transcript) naming one gets signal `known_mule` (weight 1.5) and a HIGH floor. `GET /mules`; UI `MuleList` on the Security queue. Extraction regexes in `mules.extract` (enrolled people's own phones are excluded).
-3. **Human 2FA code word**: two words that change every 30 s per person, HMAC of a per-person `code_secret` (column on `people`, never sent to the browser). The real person sends `/code` to the Telegram bot; the employee types what the caller said into `POST /people/{id}/code` (accepts the current and previous window). `backend/codeword.py`; UI `CodeWordCheck` on the verdict and Live call pages; it says plainly when the person has no Telegram linked.
+3. **Human 2FA code word**: two words that change every 30 s per person, HMAC of a per-person `code_secret` (column on `people`, never sent to the browser). The real person reads it on their personal page `/me/{id}?t=…` (sent once from Trust Graph by WhatsApp/SMS/email, or QR) or with `/code` on Telegram; the employee types what the caller said into `POST /people/{id}/code` (accepts the current and previous window). `backend/codeword.py`; UI `CodeWordCheck` on the verdict and Live call pages.
 4. **Cooling-off lock**: HIGH payment/credential cases get `result.hold_until` = now + `HOLD_MINUTES` (30). UI `HoldLock` shows a countdown; "Released" on YES, "Payment blocked" on NO.
 
 Foundation:
 5. Context beats pixels: impact-aware risk works even when the fake is perfect; floor scales with the amount.
-6. Out-of-band verification: Telegram YES/NO to the real person's enrolled chat; NO = confirmed attack, CERT-In draft, identifiers to the blocklist.
+6. Out-of-band verification over what everyone has (mentor feedback 31 Oct: employees don't use Telegram): `backend/notify.py` sends a signed link (`/v/{case}?t=HMAC(code_secret)`) to the REGISTERED phone/email: email automatic with SMTP_USER/SMTP_PASS, WhatsApp/SMS as one-tap `wa.me`/`sms:` links, QR on screen; Telegram optional. YES/NO from any channel goes through `notify.record_answer` (first answer wins). NO = confirmed attack, CERT-In draft, identifiers to the blocklist. Phones need the backend on `--host 0.0.0.0` (or PUBLIC_URL tunnel).
+11. Every scam type, not only money (mentor feedback 31 Oct): 17 topic+hook scam patterns in `message.SCAM_TYPES`, link intelligence (`message.link_risk`: one-hop short-link expansion, fake bank/brand domain, .apk, IP, punycode, throwaway TLD, RDAP domain age), QR decoding in images (`app.qr_codes`), new actions with impacts install_app 0.9, click_link 0.7, personal_info 0.6, call_back 0.5, new signals `link_risk` (1.0) and `scam_pattern` (0.8), new rules: dangerous link -> HIGH, scam pattern backed by classifier/link/2 tactics (`scam_strong`) -> HIGH (money floor), pattern alone -> MEDIUM. Verdict shows "Looks like: …", per-type advice, "Warn family on WhatsApp" and read-aloud; Security queue shows money held and scam types caught.
 7. Live Call Guard: web Live page + Chrome extension listen to a Meet/Zoom tab; challenge prompts (GOTCHA, NYU: hand over face, finger on cheek).
 8. Org Trust Graph: channels, hours, approval limits, usual requests, voiceprint, face.
 9. Bharat-ready: Hindi/Hinglish, digital-arrest mode with 1930, CERT-In 6-hour draft (now lists every identifier), DPDP-aligned (embeddings only).
@@ -53,7 +54,8 @@ backend/
   db.py               SQLite (trustcheck.db, gitignored): people (+ code_secret), cases, mules; embeddings/secrets never returned
   mules.py            identifier extraction, mule signals, Decoy Mode (self-check: python mules.py)
   codeword.py         Human 2FA code words (self-check: python codeword.py)
-  verify.py           Telegram long-polling bot: /start (chat id), /code, YES/NO callbacks, citizen mode; logs every update
+  notify.py           out-of-band verification links (WhatsApp/SMS/email/QR), /v and /me phone pages, record_answer (self-check: python notify.py)
+  verify.py           Telegram long-polling bot (optional): /start (chat id), /code, YES/NO callbacks, citizen mode; logs every update
   report.py           CERT-In incident draft (Markdown), includes attacker identifiers
   seed.py             demo people: cfo-rajesh (limit ₹10 lakh), ceo-ananya, hr-farhan
   setup_models.py     downloads every model and prints PASS/FAIL per model
@@ -105,6 +107,10 @@ cd backend; .\.venv\Scripts\activate; uvicorn app:app --port 8000
 cd frontend; npm run dev        # landing http://localhost:5173 (5174 if 5173 is taken), console /#/app/check
 ```
 Fresh demo data: stop the backend, delete `backend/trustcheck.db`, run `python seed.py`, start the backend, then add each person's Telegram chat id in Trust Graph (they send `/start` to the bot to get it). The backend has no auto-reload: restart it after any Python change. Setup and Windows gotchas are in README.md; the demo script is `docs/DEMO.md`. Warm the models before presenting (one voice note through Check).
+
+## Update 31 Oct night (mentor round)
+
+Done and tested (self-checks, API, browser at desktop and phone widths): every-scam-type detection, link intelligence, QR scams, verification over WhatsApp/SMS/email links with phone pages, code-word page, impact dashboard, share/read-aloud. Message classifier retrained with 41 scam and 43 genuine Indic templates, equal weight per template: unseen-template AUROC 0.921, recall 0.899, FPR 0.234 (was 0.849 / 0.802 / 0.200). Not yet: the phone flow over real Wi-Fi (needs `--host 0.0.0.0`), SMTP email with a real app password, AV model training (next).
 
 ## Next steps, in priority order
 

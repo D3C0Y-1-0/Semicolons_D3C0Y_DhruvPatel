@@ -15,7 +15,7 @@ export default function Cases() {
   useEffect(() => {
     const load = () => { api("/cases").then(setCases).catch(() => {}); api("/stats").then(setStats).catch(() => {}); };
     load();
-    const t = setInterval(load, 3000); // updates live when someone answers on Telegram
+    const t = setInterval(load, 3000); // updates live when the real person answers
     return () => clearInterval(t);
   }, []);
 
@@ -39,7 +39,7 @@ export default function Cases() {
     <div className="space-y-10">
       <div>
         <h2 className="text-5xl font-bold tracking-[-0.04em]">Security queue</h2>
-        <p className="text-ink-soft mt-2">Every check lands here. It refreshes every few seconds, so a NO on Telegram shows up while you watch.</p>
+        <p className="text-ink-soft mt-2">Every check lands here. It refreshes every few seconds, so a NO from the real person (WhatsApp, SMS, email or Telegram) shows up while you watch.</p>
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {tiles.map(([k, n, label, color]) => (
@@ -50,6 +50,26 @@ export default function Cases() {
           </button>
         ))}
       </div>
+
+      {stats && (stats.money_held > 0 || stats.scam_types?.length > 0) && (
+        <section className="grid lg:grid-cols-[22rem_1fr] gap-3">
+          <div className="rounded-[1.75rem] bg-night text-white px-6 py-5">
+            <span className="block text-sm font-semibold text-white/70">Money held back from risky requests</span>
+            <span className="block text-4xl font-extrabold tracking-tight tnum mt-1">₹{Math.round(stats.money_held).toLocaleString("en-IN")}</span>
+            <span className="block text-xs text-white/60 mt-1">Payments asked for in MEDIUM and HIGH cases that nobody verified as genuine</span>
+          </div>
+          <div className="glass rounded-[1.75rem] px-6 py-5">
+            <p className="text-sm font-semibold text-ink-soft mb-3">Scam types caught</p>
+            <ul className="space-y-1.5">{stats.scam_types.slice(0, 6).map(([label, n]) => (
+              <li key={label} className="grid grid-cols-[minmax(0,14rem)_1fr_2rem] items-center gap-3 text-sm">
+                <span className="truncate font-medium" title={label}>{label}</span>
+                <span className="h-2.5 rounded-full heat-scale" style={{ width: `${(n / stats.scam_types[0][1]) * 100}%` }} />
+                <span className="tnum font-bold text-right">{n}</span>
+              </li>))}
+            </ul>
+          </div>
+        </section>
+      )}
 
       <MuleList />
 

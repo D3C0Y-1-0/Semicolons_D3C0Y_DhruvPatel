@@ -25,7 +25,7 @@ TACTICS = {
     "payment_request": [r"\b(wire|transfer|neft|rtgs|imps|upi|remit)\b", r"\bpayment\b", r"\binvoice\b", r"\bbeneficiary\b",
                         r"₹\s?[\d,]+", r"\brs\.?\s?[\d,]+", r"\binr\s?[\d,]+", r"\b\d+(\.\d+)?\s?(lakh|lac|crore|cr)\b",
                         r"\b[\d,]+(\.\d+)?\s?(rs|rupees?|rupay|rupaye|rupiya|bucks)\b", r"\b[\d,]+\s?/-", r"\b\d+(\.\d+)?\s?k\s?(rs|rupees?|inr)\b",
-                        r"\bsend (me )?(some )?(money|cash|funds?|the amount)\b", r"\b(lend|loan) me\b", r"\b(gpay|google pay|phone ?pe|paytm)\b",
+                        r"\bsend (me )?(some )?(money|cash|funds?|the amount)\b", r"\b(deposit|invest)\b", r"\b(lend|loan) me\b", r"\b(gpay|google pay|phone ?pe|paytm)\b",
                         r"\bpaise? (bhejo|transfer|chahiye|de do)\b", r"पैसे", r"भुगतान", r"\bgift ?cards?\b", r"\b(bitcoin|crypto|usdt)\b"],
     "credential_request": [r"\botp\b", r"\bpassword\b", r"\bpin\b", r"\blog ?in (details|credentials)\b", r"\bverify your account\b",
                            r"\b(anydesk|teamviewer|quick ?support|rustdesk)\b", r"\bremote access\b", r"\bcvv\b"],
@@ -60,6 +60,186 @@ BARE_ASK_RE = re.compile(r"\b(?:need|send|lend|loan|give|transfer|pay|borrow)\b\
                          r"(?=\s*(?:$|[^\w\s]|(?:urgently|urgent|asap|now|please|plz|pls|today|tonight|tomorrow|till|by|to|for|and|bro|yaar|immediately)\b))", re.I)  # not "500 copies"
 BLOCKLIST = {l.strip().lower() for l in open(os.path.join(os.path.dirname(__file__), "url_blocklist.txt"), encoding="utf-8")
              if l.strip() and not l.startswith("#")} if os.path.exists(os.path.join(os.path.dirname(__file__), "url_blocklist.txt")) else set()
+
+# --- Scam types: every pattern needs its topic AND its hook, so a genuine message on the same topic stays quiet ----
+LINK_CUE = r"\b(click|tap|open|visit|link)\b|https?://|www\.|\.(ly|xyz|top|apk)\b"
+PAY_CUE = r"\b(pay|fee|fees|charges?|deposit|transfer|upi|send)\b|₹|\brs\.?\s?\d"
+# "Do not share this OTP. Bank never asks for it" is the genuine notice, not the scam
+SAFE_NOTICE = re.compile(r"\b(do not|don'?t|never)\s+(share|disclose)\s+(this|the|your|it)\b.{0,25}\b(otp|code|pin|password|anyone)\b"
+                         r"|\b(bank|we|it|ibank) (will )?never asks?\b", re.I)
+SCAM_TYPES = {  # key: (label, topic, hook or None, what to do)
+    "kyc_phishing": ("KYC / account-block phishing",
+                     r"\b(kyc|pan|aadhaa?r|account|a/c|card|net ?banking|yono|wallet)\b.{0,60}\b(block(ed)?|suspend(ed)?|deactivat\w*|expir\w*|frozen|freez\w*|band ho)|\b(update|complete|verify) (your )?(kyc|pan|aadhaa?r)\b",
+                     LINK_CUE + r"|\botp\b|\bpassword\b|\bpin\b|\bcall\b",
+                     "Banks never block accounts through SMS links. Open your bank's own app or visit the branch."),
+    "bank_impersonation": ("Fake bank / fraud department",
+                           r"\b(bank|fraud (department|team)|customer care|rbi|credit card (department|team))\b.{0,80}\b(otp|cvv|pin|card number|expiry)\b",
+                           None, "Your bank will never ask for an OTP, CVV or PIN. Hang up and call the number on your card."),
+    "delivery_customs": ("Fake parcel / customs fee",
+                         r"\b(parcel|package|shipment|courier|consignment|india ?post|fedex|dhl|delivery)\b.{0,80}\b(held|on hold|seized|returned|failed|pending|stuck|undeliver\w*|incomplete|wrong address)",
+                         PAY_CUE + "|" + LINK_CUE + r"|\baddress\b", "Couriers don't collect fees through random links. Check the tracking number on the courier's official site."),
+    "utility_disconnect": ("Electricity / bill disconnection",
+                           r"\b(electricity|power|bijli|gas|light)\b.{0,60}\b(disconnect\w*|cut|band|suspend\w*)",
+                           r"\bcall\b|\bofficer\b|\d{10}|" + LINK_CUE, "Power companies don't cut supply over SMS. Pay only in the official app or website."),
+    "challan_refund": ("Fake e-challan / tax refund / reward points",
+                       r"\be-?challan\b|\btraffic (fine|challan)\b|\b(income ?tax|it) refund\b|\breward points?\b|\bpoints? (will )?expir",
+                       LINK_CUE + "|" + PAY_CUE, "Check challans only on parivahan.gov.in and refunds only on incometax.gov.in."),
+    "lottery_prize": ("Lottery / prize bait",
+                      r"\b(lottery|lucky draw|kbc|jackpot|lucky winner|prize money)\b|\byou (have )?won\b",
+                      PAY_CUE + "|" + LINK_CUE + r"|\bclaim\b|\bcall\b|whats ?app", "You can't win a draw you never entered. Never pay to receive a prize."),
+    "job_task": ("Task / part-time job scam",
+                 r"\b(part[- ]?time|work from home|daily (income|earning)|earn (rs\.?|₹|inr)?\s?[\d,]+|like (youtube )?videos?|rate (hotels|products)|online tasks?|prepaid tasks?)\b",
+                 PAY_CUE + r"|\btasks?\b|telegram|whats ?app|registration", "Real jobs never ask you to pay. 'Pay to unlock tasks' always ends in a loss."),
+    "investment": ("Investment / trading scam",
+                   r"\b(guaranteed|assured|fixed)\s+(\d+%\s+)?(returns?|profits?)\b|\bdouble (your )?money\b|\b(stock|trading|ipo|crypto|forex) (tips|group|signals?)\b|\b\d{2,3}%\s+(returns?|profits?)\b",
+                   None, "No real investment guarantees returns. Check SEBI registration before investing anything."),
+    "loan_app": ("Instant-loan app scam",
+                 r"\b(instant|pre-?approved|quick|easy) (personal )?loan\b|\bloan (is )?(approved|sanctioned)\b",
+                 PAY_CUE + "|" + LINK_CUE + r"|\bapp\b|\bapk\b", "RBI-registered lenders don't charge fees before paying out. Never install loan apps from links."),
+    "malware_apk": ("Malicious app install",
+                    r"\.apk\b|\b(download|install)\b.{0,30}\b(app|apk|application|update)\b", None,
+                    "Never install apps from a link. Only use the Play Store or App Store."),
+    "remote_access": ("Remote access / tech support",
+                      r"\b(anydesk|teamviewer|quick ?support|rustdesk|airdroid)\b|\b(virus|hacked|compromised)\b.{0,60}\b(computer|phone|system|laptop)\b",
+                      None, "Nobody genuine asks you to install a screen-sharing app. Hang up."),
+    "refund_upi": ("Refund / 'sent by mistake' UPI trick",
+                   r"\b(sent|transferred|credited) (to you |to your account )?by mistake\b|\b(refund|cashback|receive)\b.{0,60}\b(upi pin|pin daal\w*|enter (your )?pin|scan)\b|\bscan\b.{0,30}\bqr\b.{0,40}\b(receive|get|refund|claim)\b|upi://pay.{0,200}\b(receive|refund|claim|prize|won|cashback)\b",
+                   None, "You never need a PIN or a QR scan to receive money. A PIN or scan only ever sends it."),
+    "account_takeover": ("OTP / account takeover",
+                         r"\b(sent|forwarded) (you )?(a |the |an )?(\d[- ]?digit )?(code|otp)\b.{0,40}\bmistake\b|\b(sim|esim)\b.{0,40}\b(block\w*|deactivat\w*|band|upgrade|swap)\b|\b(whatsapp|instagram|facebook|telegram) (verification |login )?code\b",
+                         None, "Never forward a code you receive. It's the key to your account."),
+    "sextortion": ("Sextortion",
+                   r"\b(nude|intimate|private|obscene|video call|recordings?)\b.{0,80}\b(leak|viral|contacts|family|share|sent to)\b",
+                   PAY_CUE + r"|\bcrypto\b|\bbitcoin\b", "Don't pay: paying brings more demands. Report at cybercrime.gov.in or call 1930."),
+    "romance_gift": ("Romance / gift-parcel scam",
+                     r"\b(gift|parcel|package)\b.{0,60}\b(for you|sent you|from (the )?(uk|usa|london|abroad))\b|\b(my love|darling|sweetheart|my dear)\b",
+                     r"\bcustoms\b|\bclearance\b|" + PAY_CUE, "Never pay customs or fees for a gift from someone you met online."),
+    "family_emergency": ("Family emergency / new number",
+                         r"\b(mom|mum|mummy|mumma|dad|papa|maa)\b.{0,40}\bnew number\b|\b(son|daughter|beta|beti|husband|brother|bhai)\b.{0,40}\b(arrested|accident|hospital|police station|jail|kidnap\w*)",
+                         PAY_CUE + r"|\bbail\b|\bmoney\b", "Call the family member on their old, known number before sending anything."),
+    "personal_data": ("Personal data harvesting",
+                      r"\b(send|share|upload|provide|submit)\b.{0,30}\b(aadhaa?r|pan( card)?|passport|selfie|date of birth|dob|bank details|card details)\b",
+                      None, "Don't send ID documents or selfies to anyone who contacted you first. They're used to open loans and SIMs in your name."),
+}
+SCAM_RX = {k: (re.compile(t, re.I | re.S), re.compile(h, re.I) if h else None) for k, (_, t, h, _) in SCAM_TYPES.items()}
+CREDENTIAL_TYPES = {"bank_impersonation", "account_takeover", "kyc_phishing"}
+
+
+def scam_types(text):
+    """[(key, label, advice)] for every scam pattern in the text."""
+    safe = SAFE_NOTICE.search(text)
+    out = []
+    for k, (topic, hook) in SCAM_RX.items():
+        if topic.search(text) and (hook is None or hook.search(text)) and not (safe and k in CREDENTIAL_TYPES):
+            out.append({"type": k, "label": SCAM_TYPES[k][0], "advice": SCAM_TYPES[k][3]})
+    return out
+
+
+# --- Link intelligence -----------------------------------------------------------------------------------------
+SHORTENERS = {"bit.ly", "bitly.com", "tinyurl.com", "t.co", "goo.gl", "is.gd", "cutt.ly", "rb.gy", "shorturl.at", "t.ly", "ow.ly",
+              "tiny.cc", "rebrand.ly", "s.id", "v.gd", "shorte.st", "u.to", "clck.ru", "qr.ae", "bit.do"}
+CHEAP_TLDS = {"xyz", "top", "click", "live", "buzz", "icu", "online", "site", "shop", "club", "rest", "sbs", "cfd", "cyou", "monster",
+              "quest", "bond", "lol", "fun", "work", "link", "support", "help", "vip", "win", "loan", "gq", "tk", "ml", "ga", "cf", "cc", "pw"}
+BRANDS = {  # name in a domain -> its real domains
+    "sbi": ("sbi.co.in", "onlinesbi.sbi", "sbi.bank.in", "sbicard.com"), "hdfc": ("hdfcbank.com", "hdfc.com", "hdfcbank.bank.in"),
+    "icici": ("icicibank.com", "icici.bank.in"), "axis": ("axisbank.com",), "kotak": ("kotak.com",), "pnb": ("pnbindia.in",),
+    "paytm": ("paytm.com",), "phonepe": ("phonepe.com",), "gpay": ("pay.google.com",), "amazon": ("amazon.in", "amazon.com"),
+    "flipkart": ("flipkart.com",), "indiapost": ("indiapost.gov.in",), "incometax": ("incometax.gov.in",), "uidai": ("uidai.gov.in",),
+    "aadhaar": ("uidai.gov.in",), "epfo": ("epfindia.gov.in",), "npci": ("npci.org.in",), "parivahan": ("parivahan.gov.in",),
+    "echallan": ("parivahan.gov.in",), "irctc": ("irctc.co.in",), "airtel": ("airtel.in",), "jio": ("jio.com",), "rbi": ("rbi.org.in",),
+    "whatsapp": ("whatsapp.com",), "netflix": ("netflix.com",), "bescom": ("bescom.co.in",),
+}
+STRONG_LINK = 0.85  # at or above: the link alone makes the message HIGH
+
+
+def reg_domain(host):
+    parts = host.lower().strip(".").split(".")
+    n = 3 if len(parts) >= 3 and len(parts[-1]) == 2 and parts[-2] in ("co", "gov", "org", "net", "ac", "nic", "edu", "res", "bank", "com") else 2
+    return ".".join(parts[-n:])
+
+
+def _is(host, dom):
+    return host == dom or host.endswith("." + dom)
+
+
+@functools.lru_cache(maxsize=512)
+def expand_short(url):
+    """One redirect hop of a short link, without visiting where it lands. None if offline or no redirect."""
+    import urllib.error
+    import urllib.request
+
+    class Stop(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, *a, **k):
+            return None
+    try:
+        urllib.request.build_opener(Stop).open(urllib.request.Request(url, method="HEAD", headers={"User-Agent": "TrustCheck"}), timeout=3)
+    except urllib.error.HTTPError as e:
+        return e.headers.get("Location")
+    except Exception:
+        return None
+    return None
+
+
+@functools.lru_cache(maxsize=512)
+def domain_age_days(dom):
+    """Days since registration via RDAP (free, no key). None if unknown or offline."""
+    import datetime as dt
+    import urllib.request
+    try:
+        req = urllib.request.Request(f"https://rdap.org/domain/{dom}", headers={"Accept": "application/rdap+json", "User-Agent": "TrustCheck"})
+        data = json.load(urllib.request.urlopen(req, timeout=4))
+        when = next(e["eventDate"] for e in data.get("events", []) if e.get("eventAction") == "registration")
+        return (dt.datetime.now(dt.timezone.utc) - dt.datetime.fromisoformat(when.replace("Z", "+00:00"))).days
+    except Exception:
+        return None
+
+
+def link_risk(url, online=None):
+    """(score 0..1, reasons, final url). Each reason is plain words for the verdict."""
+    online = os.getenv("LINK_LOOKUPS", "1") != "0" if online is None else online
+    full = url if url.lower().startswith("http") else "http://" + url
+    p = urlparse(full)
+    host = (p.hostname or "").lower()
+    found, final = [], url
+    if online and reg_domain(host) in SHORTENERS:
+        target = expand_short(full)
+        if target:
+            final, tp = target, urlparse(target)
+            found.append((0.4, f"short link hides the real address: {tp.hostname}"))
+            host, p = (tp.hostname or "").lower(), tp
+    if reg_domain(host) in SHORTENERS:
+        found.append((0.55, "short link hides where it really goes"))
+    dom = reg_domain(host)
+    if host in BLOCKLIST or dom in BLOCKLIST or safe_browsing_bad(final):
+        found.append((0.97, "on a known phishing or malware list"))
+    if p.path.lower().endswith(".apk"):
+        found.append((0.95, "downloads an Android app (.apk) from outside the Play Store"))
+    if re.fullmatch(r"[\d.]+", host):
+        found.append((0.85, "points to a bare IP address, not a named website"))
+    if "xn--" in host:
+        found.append((0.9, "uses look-alike foreign letters in the address (punycode)"))
+    if "@" in (p.netloc or ""):
+        found.append((0.8, "hides the real address behind an @ sign"))
+    for brand, real in BRANDS.items():
+        if re.search(rf"(^|[.\-]){brand}", host) and not any(_is(host, r) for r in real):
+            found.append((0.92, f"uses the name {brand.upper()} but isn't its real site ({real[0]})"))
+            break
+    org = lookalike_of(host)
+    if org:
+        found.append((0.9, f"imitates your company domain {org}"))
+    if host.rsplit(".", 1)[-1] in CHEAP_TLDS:
+        found.append((0.7, f"uses a throwaway .{host.rsplit('.', 1)[-1]} address favoured by scam sites"))
+    official = any(_is(host, r) for real in BRANDS.values() for r in real) or any(_is(host, o) for o in ORG_DOMAINS)
+    if online and not official and dom not in SHORTENERS:
+        age = domain_age_days(dom)
+        if age is not None and age < 180:
+            found.append((0.9 if age < 30 else 0.7, f"website was registered only {age} days ago"))
+    if not found:
+        return None, [], final
+    s = 1.0
+    for x, _ in found:
+        s *= 1 - x
+    return round(min(0.99, 1 - s), 3), [r for _, r in found], final
 
 
 def levenshtein(a, b):
@@ -127,19 +307,33 @@ def header_checks(hdr):
     return signals, facts
 
 
+URL_RE_BARE = re.compile(r"\b(?:[a-z0-9-]+\.)+(?:xyz|top|click|live|buzz|icu|online|site|shop|club|in|com|ly|gl|gd|at|co|me|info|net|org|apk)(?:/[^\s<>\"')]*)?", re.I)
+
+
+def find_urls(text):
+    """http(s) and www links, plus bare ones like 'sbi-kyc.xyz/login' that SMS scams use."""
+    urls = [u.rstrip(".,;:!?") for u in URL_RE.findall(text or "")]
+    rest = re.sub(r"\S+@\S+", " ", URL_RE.sub(" ", text or ""))  # emails and UPI ids aren't links
+    urls += [u.rstrip(".,;:!?") for u in URL_RE_BARE.findall(rest) if not re.fullmatch(r"[\d.]+", u) and "@" not in u]
+    return list(dict.fromkeys(urls))
+
+
 def url_checks(text):
-    signals, facts, ev = [], {}, []
-    for url in URL_RE.findall(text or ""):
-        host = urlparse(url if url.startswith("http") else "http://" + url).hostname or ""
-        if host in BLOCKLIST or safe_browsing_bad(url):
+    signals, facts, ev, worst = [], {}, [], 0.0
+    urls = find_urls(text)
+    for url in urls:
+        score, reasons, final = link_risk(url)
+        if not score:
+            continue
+        worst = max(worst, score)
+        if any("phishing or malware list" in r for r in reasons):
             facts["bad_url"] = True
-            ev.append({"type": "url", "text": url, "verdict": "known bad"})
-        elif lookalike_of(host):
-            ev.append({"type": "url", "text": url, "verdict": f"imitates {lookalike_of(host)}"})
-    if facts.get("bad_url"):
-        signals.append({"signal": "bad_url", "label": "Known malicious link", "score": 0.97, "why": "a link is on a phishing list", "evidence": ev})
-    elif ev:
-        signals.append({"signal": "lookalike_domain", "label": "Lookalike link", "score": 0.9, "why": "a link imitates your domain", "evidence": ev})
+        ev.append({"type": "url", "text": url, "verdict": "; ".join(reasons), **({"final": final} if final != url else {})})
+    facts["has_link"] = bool(urls)
+    if ev:
+        facts["dangerous_link"] = worst >= STRONG_LINK
+        signals.append({"signal": "link_risk", "label": "Link check", "score": worst,
+                        "why": f"link {ev[0]['text']} {ev[0]['verdict']}", "evidence": ev})
     return signals, facts
 
 
@@ -171,7 +365,7 @@ def lexicon_tactics(text):
 
 LLM_PROMPT = """You are a fraud analyst. Find social-engineering manipulation in the message below (it may be English, Hindi or Hinglish).
 Return ONLY JSON: {"tactics":[{"tactic":one of %s,"quote":"exact substring from the message"}],
-"action":"payment"|"credentials"|"information"|"none","amount_inr":number or null,"new_beneficiary":bool,"digital_arrest":bool}
+"action":"payment"|"credentials"|"install_app"|"personal_info"|"click_link"|"call_back"|"information"|"none","amount_inr":number or null,"new_beneficiary":bool,"digital_arrest":bool}
 Message:
 <<<%s>>>"""
 
@@ -266,21 +460,47 @@ def analyze(text="", eml_bytes=None, approval_limit=None):
     amount = extras.get("amount_inr") or parse_amount(text)
     new_ben = extras.get("new_beneficiary") or "new_beneficiary" in found
     gift = re.search(r"gift ?cards?|bitcoin|crypto|usdt", text, re.I)
-    if "credential_request" in found or extras.get("action") == "credentials":
+    types = scam_types(text)
+    kinds = {t["type"] for t in types}
+    digital_arrest = bool(extras.get("digital_arrest")) or ("fear_threat" in found and (
+        "payment_request" in found or re.search(r"stay on|don'?t disconnect", text, re.I)))
+    if digital_arrest:
+        types.insert(0, {"type": "digital_arrest", "label": "Digital arrest / fake police",
+                         "advice": "Real police, CBI or courts never arrest anyone over a video call. Hang up and call 1930."})
+    if (sum(t in found for t in ("authority", "urgency", "secrecy")) >= 2 and "payment_request" in found) or gift:
+        types.insert(0, {"type": "ceo_fraud", "label": "Boss / CEO impersonation", "advice": "Call the person back on their registered number before moving any money."})
+    paying = bool(kinds & {"investment", "lottery_prize", "sextortion"}) or ("payment_request" in found and not (NOTICE_RE.search(text) and not ASK_RE.search(text))) or extras.get("action") == "payment"
+    asks_link = facts.get("has_link") and (re.search(LINK_CUE, text, re.I) or types or found)
+    if kinds & {"malware_apk", "remote_access"} or extras.get("action") == "install_app":
+        action = "install_app"
+    elif "refund_upi" not in kinds and (extras.get("action") == "credentials" or kinds & {"account_takeover", "bank_impersonation"} or (
+            "credential_request" in found and (not SAFE_NOTICE.search(text) or kinds & CREDENTIAL_TYPES))):
         action = "credentials"
-    elif ("payment_request" in found and not (NOTICE_RE.search(text) and not ASK_RE.search(text))) or extras.get("action") == "payment":
+    elif paying or "refund_upi" in kinds:
         over = amount is not None and approval_limit is not None and amount > approval_limit
-        action = "payment_high" if (over or new_ben or gift) else "payment"
+        action = "payment_high" if (over or new_ben or gift or kinds & {"investment", "job_task", "lottery_prize", "refund_upi"}) else "payment"
+    elif "personal_data" in kinds or extras.get("action") == "personal_info":
+        action = "personal_info"
+    elif asks_link or extras.get("action") == "click_link":
+        action = "click_link"
+    elif re.search(r"\bcall\b.{0,30}(\+?\d[\d -]{8,}\d|officer|helpline|us|immediately|back)|\b(press|dial) \d\b", text, re.I) and (types or found):
+        action = "call_back"
     elif extras.get("action") == "information" or re.search(r"\b(send|share|forward) (me )?(the )?(file|data|list|document|report|details)", text, re.I):
         action = "information"
     else:
         action = "none"
 
+    if types:
+        signals.append({"signal": "scam_pattern", "label": "Known scam pattern", "score": 0.93 if len(types) > 1 else 0.85,
+                        "why": "matches the " + " and ".join(t["label"].lower() for t in types[:2]) + " pattern",
+                        "evidence": [{"type": "pattern", "text": f"{t['label']}: {t['advice']}"} for t in types]})
     facts |= {"action": action, "amount_inr": amount, "new_beneficiary": bool(new_ben),
-              "channel_switch": "channel_switch" in found,
-              "digital_arrest": bool(extras.get("digital_arrest")) or ("fear_threat" in found and (
-                  "payment_request" in found or re.search(r"stay on|don'?t disconnect", text, re.I)))}
-    return signals, facts, {"text": text, "highlights": spans, "tactics": found, "header": header}
+              "channel_switch": "channel_switch" in found, "digital_arrest": digital_arrest,
+              "scam_pattern": bool(types),
+              # a pattern backed by scam wording, a risky link or two manipulation tactics is no longer a maybe
+              "scam_strong": bool(types) and ((p or 0) >= 0.6 or len(found) >= 2 or any(
+                  x["signal"] == "link_risk" and x["score"] >= 0.6 for x in signals))}
+    return signals, facts, {"text": text, "highlights": spans, "tactics": found, "header": header, "scam_types": types}
 
 
 def demo():
@@ -311,6 +531,39 @@ def demo():
     names = {x["signal"] for x in s}
     assert {"lookalike_domain", "header_auth"} <= names and f["sender_domain"] == "acrne.com", s
     assert lookalike_of("acme-payments.co") == "acme.com" and lookalike_of("acme.com") is None and lookalike_of("google.com") is None
+    # every scam type, not only money: (message, expected type, expected action)
+    os.environ["LINK_LOOKUPS"] = "0"  # offline: no RDAP or short-link lookups in the self-check
+    scams = [
+        ("Dear customer your SBI account will be blocked today. Update KYC at http://sbi-kyc-update.xyz/login", "kyc_phishing", "click_link"),
+        ("Your India Post parcel is on hold due to incomplete address. Update within 12 hrs: indiapost-redelivery.top/in", "delivery_customs", "click_link"),
+        ("Dear consumer your electricity will be disconnected tonight at 9.30 pm. Call officer 9876500011 immediately.", "utility_disconnect", "call_back"),
+        ("Congratulations! You have won Rs 25,00,000 in KBC lucky draw. Pay Rs 12,500 processing fee to claim.", "lottery_prize", "payment_high"),
+        ("Part time job: earn Rs 3000 daily by liking YouTube videos. Join our Telegram for tasks.", "job_task", "payment_high"),
+        ("Guaranteed 40% returns in 30 days! Join our stock tips WhatsApp group, deposit 10000 today.", "investment", "payment_high"),
+        ("Pre-approved instant loan of Rs 5 lakh. Download our app: https://cashnow-loans.in/app.apk", "malware_apk", "install_app"),
+        ("Hello sir, Microsoft here, your computer has virus. Install AnyDesk and give me the code.", "remote_access", "install_app"),
+        ("I sent Rs 5000 to you by mistake, please return. Scan this QR to receive the refund and enter UPI PIN.", "refund_upi", "payment_high"),
+        ("Hi, I sent you a 6 digit code by mistake, can you please forward it to me?", "account_takeover", "credentials"),
+        ("We have recordings of your video call. Pay Rs 50,000 or it will be sent to all your contacts.", "sextortion", "payment_high"),
+        ("Hi mom this is my new number, phone broke. Need Rs 20,000 urgently for a bill, can you send?", "family_emergency", "payment"),
+        ("Your traffic e-challan of Rs 500 is pending. Pay now at echallan-parivahan.cc to avoid court.", "challan_refund", "payment"),
+        ("For the job offer please send your Aadhaar card, PAN card and a selfie on this number.", "personal_data", "personal_info"),
+    ]
+    for text, kind, act in scams:
+        _, f, info = analyze(text, approval_limit=0 if act == "payment_high" else None)
+        assert kind in {t["type"] for t in info["scam_types"]}, (kind, info["scam_types"], text)
+        assert act == "none" or f["action"] == act, (act, f["action"], text)
+    for ok in ("482913 is your OTP for Rs 499 at Swiggy. Do not share this OTP with anyone. - HDFC Bank",
+               "Your Flipkart order will be delivered today between 2 pm and 6 pm. Track at https://www.flipkart.com/orders",
+               "Reminder: your electricity bill of Rs 1,240 is due on 15 Nov. Pay via the official app. Ignore if already paid.",
+               "My son had a small accident at school, I'll be working from home today.",
+               "Slides for tomorrow are at https://docs.google.com/presentation/d/abc"):
+        _, f, info = analyze(ok)
+        assert not info["scam_types"] and not f.get("dangerous_link"), (ok, info["scam_types"], f)
+    s, f, _ = analyze("Update KYC: http://sbi-kyc-update.xyz/login")
+    assert f["dangerous_link"] and next(x for x in s if x["signal"] == "link_risk")["score"] >= STRONG_LINK
+    assert link_risk("https://www.onlinesbi.sbi/", online=False)[0] is None and link_risk("http://192.168.4.20/pay", online=False)[0] >= .85
+    assert find_urls("mail rajesh@acme.com or pay rajesh.vendor@okhdfcbank, see bit.ly/x9") == ["bit.ly/x9"], find_urls("mail rajesh@acme.com or pay rajesh.vendor@okhdfcbank, see bit.ly/x9")
     if _clf() is not None:
         assert classifier_prob(ceo) > 0.9 and classifier_prob(benign) < 0.5
     print("message ok", "(with trained classifier)" if _clf() is not None else "(classifier not trained yet)")

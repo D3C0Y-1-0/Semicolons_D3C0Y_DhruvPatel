@@ -1,7 +1,7 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { api, form } from "../lib/api.js";
-import { CodeWordCheck, DecoyPanel, HoldLock } from "./Defense.jsx";
+import { CodeWordCheck, DecoyPanel, HoldLock, SendLinks } from "./Defense.jsx";
 import Icon from "./Icons.jsx";
 
 export const BAND_TEXT = { LOW: "text-low", MEDIUM: "text-medium", HIGH: "text-high" };
@@ -14,7 +14,7 @@ const TACTIC = {
 const HEADLINE = { HIGH: "Don't act on this yet.", MEDIUM: "Pause and verify first.", LOW: "Looks normal." };
 const STATUS = {
   open: "Not verified yet",
-  verifying: "Waiting for the real person to answer on Telegram…",
+  verifying: "Waiting for the real person to answer YES or NO…",
   verified: "The real person confirmed they sent it.",
   confirmed_attack: "The real person says they did not send it. Treat this as an attack.",
 };
@@ -37,6 +37,28 @@ export function Stamp({ band, risk, size = "text-7xl", className = "" }) {
           transition={{ type: "spring", stiffness: 90, damping: 18 }} />
       </span>
     </motion.div>
+  );
+}
+
+// Scams spread by forward, so should the warning. Plus read-aloud for anyone who'd rather listen.
+function Share({ r }) {
+  const [speaking, setSpeaking] = useState(false);
+  const scam = r.scam_types?.[0];
+  if (r.band === "LOW" || !scam) return null;
+  const warning = `Scam alert: "${scam.label}" messages are going around. ${scam.advice} Never act on a message like this without checking. Report: 1930 / cybercrime.gov.in`;
+  const say = () => {
+    const s = window.speechSynthesis;
+    if (!s) return;
+    if (speaking) { s.cancel(); setSpeaking(false); return; }
+    const u = new SpeechSynthesisUtterance(`${HEADLINE[r.band]} ${r.recommended_actions.join(". ")}`);
+    u.onend = () => setSpeaking(false);
+    s.speak(u); setSpeaking(true);
+  };
+  return (
+    <div className="flex flex-wrap gap-2">
+      <a href={`https://wa.me/?text=${encodeURIComponent(warning)}`} target="_blank" rel="noreferrer" className="bg-night text-white rounded-full px-4 py-2 text-sm font-semibold">Warn family on WhatsApp</a>
+      <button type="button" onClick={say} className="bg-white/80 border border-white rounded-full px-4 py-2 text-sm font-semibold">{speaking ? "Stop" : "Read it out loud"}</button>
+    </div>
   );
 }
 
@@ -70,7 +92,7 @@ export function Waterfall({ rows, max }) {
                   </div>
                 )}
                 {r.evidence?.filter((e) => e.type !== "span" && !e.img).slice(0, 6).map((e, j) => (
-                  <p key={j} className="pl-3 border-l-2 border-rule">{e.field ? `${e.field}: ` : ""}{e.text}</p>
+                  <p key={j} className="pl-3 border-l-2 border-rule break-words">{e.field ? `${e.field}: ` : ""}{e.text}{e.verdict ? `: ${e.verdict}` : ""}{e.final ? ` (goes to ${e.final})` : ""}</p>
                 ))}
               </div>
             )}
@@ -121,6 +143,7 @@ export function Waveform({ peaks = [], timeline = [], frames = [], duration }) {
 export default function Verdict({ result: r, caseId, initialStatus = "open" }) {
   const [status, setStatus] = useState(initialStatus);
   const [msg, setMsg] = useState("");
+  const [delivery, setDelivery] = useState(null);
 
   useEffect(() => {
     if (status !== "verifying") return;
@@ -129,7 +152,7 @@ export default function Verdict({ result: r, caseId, initialStatus = "open" }) {
   }, [status, caseId]);
 
   const run = async (fn) => { setMsg(""); try { await fn(); } catch (e) { setMsg(e.message); } };
-  const verify = () => run(async () => setStatus((await api(`/verify/${caseId}`, { method: "POST" })).status));
+  const verify = () => run(async () => { const c = await api(`/verify/${caseId}`, { method: "POST" }); setDelivery(c.delivery); setStatus(c.status); });
   const decide = (answer) => run(async () => setStatus((await api(`/cases/${caseId}/decision`, { method: "POST", body: form({ answer }) })).status));
   const download = () => run(async () => {
     const text = await api(`/cases/${caseId}/report`);
@@ -144,6 +167,7 @@ export default function Verdict({ result: r, caseId, initialStatus = "open" }) {
         <div>
           <p className="wide text-3xl font-extrabold leading-tight">{r.band === "LOW" && r.synthetic_media ? "Synthetic media, but nothing risky is asked." : HEADLINE[r.band]}</p>
           {r.synthetic_media && <p className="inline-block mt-2 text-sm font-bold text-white bg-high rounded-full px-3 py-1">Synthetic media detected</p>}
+          {r.scam_types?.length > 0 && <p className="mt-2 flex flex-wrap gap-2">{r.scam_types.map((t) => <span key={t.type} className="text-sm font-bold text-white bg-night rounded-full px-3 py-1">Looks like: {t.label}</span>)}</p>}
           <ul className="mt-3 space-y-1.5 max-w-prose">
             {[...r.signals.filter((x) => x.contribution > 0).slice(0, 4).map((x) => x.why), ...r.rules_fired.map((x) => "Policy: " + x)].map((w) => (
               <li key={w} className="flex gap-2.5"><span aria-hidden className={`${BAND_TEXT[r.band]} font-bold`}>!</span><span>{w[0].toUpperCase() + w.slice(1)}</span></li>
@@ -162,6 +186,7 @@ export default function Verdict({ result: r, caseId, initialStatus = "open" }) {
         {r.hold_until && caseId && <HoldLock until={r.hold_until} status={status} />}
         <h3 className="text-xl font-bold">What to do now</h3>
         <ul className="space-y-2">{r.recommended_actions.map((a) => <li key={a} className="flex gap-3 items-start"><span aria-hidden className={`mt-2 size-2 rounded-full shrink-0 ${r.band === "LOW" ? "bg-low" : r.band === "MEDIUM" ? "bg-medium" : "bg-high"}`} />{a}</li>)}</ul>
+        <Share r={r} />
         {r.challenge && <p className="text-lg font-semibold rounded-2xl bg-night text-white px-5 py-4">On the call, try this: {r.challenge}</p>}
         {r.band !== "LOW" && r.claimed_person && (status === "open" || status === "verifying") && <CodeWordCheck person={r.claimed_person} />}
         {caseId && (
@@ -172,7 +197,8 @@ export default function Verdict({ result: r, caseId, initialStatus = "open" }) {
             </AnimatePresence>
             {(status === "open" || status === "verifying") && (
               <div className="space-y-4">
-                {r.band !== "LOW" && <button onClick={verify} className="bg-night text-white pl-5 pr-2 py-2 rounded-full font-semibold hover:bg-night-2 inline-flex items-center gap-3">Ask the real person on Telegram<span className="orb size-8 bg-white text-night"><Icon name="arrow" className="size-4" /></span></button>}
+                {status === "verifying" && delivery && <SendLinks delivery={delivery} who={r.claimed_person?.name.split(" ")[0] || "them"} qr={delivery.link} qrLabel="In the room? Scan to answer" />}
+                {r.band !== "LOW" && r.claimed_person && <button onClick={verify} className="bg-night text-white pl-5 pr-2 py-2 rounded-full font-semibold hover:bg-night-2 inline-flex items-center gap-3">{status === "verifying" ? "Ask again" : "Ask the real person"}<span className="orb size-8 bg-white text-night"><Icon name="arrow" className="size-4" /></span></button>}
                 <div className="flex flex-wrap items-center gap-2 text-sm">
                   <span className="text-ink-soft mr-1">Checked another way, like a call to their registered number? Record their answer:</span>
                   <button onClick={() => decide("yes")} className="bg-white/80 border border-white px-4 py-2 rounded-full font-semibold hover:bg-white">It was them</button>

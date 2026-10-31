@@ -26,15 +26,22 @@ WEIGHTS = {
     "header_auth": 0.6,
     "bad_url": 1.2,
     "known_mule": 1.5,  # pays to or calls an account/number already caught in an attack
+    "link_risk": 1.0,   # shortener, brand impersonation, .apk, bare IP, days-old domain
+    "scam_pattern": 0.8,  # matches a known scam type (KYC, parcel, job, loan, lottery, sextortion...)
 }
 
 IMPACT = {
     "payment_high": 1.0,   # above approval limit, new beneficiary, gift cards, crypto
-    "credentials": 0.8,    # passwords, OTP, remote-access install
+    "install_app": 0.9,    # APK or screen-sharing app: the attacker gets the whole phone
+    "credentials": 0.8,    # passwords, OTP, PIN
     "payment": 0.7,        # within limit, known beneficiary
+    "click_link": 0.7,     # phishing page: the usual first step to credentials or a payment
+    "personal_info": 0.6,  # Aadhaar, PAN, selfie: loans and SIMs opened in your name
+    "call_back": 0.5,      # "call this officer": moves you to a voice scam
     "information": 0.4,    # share internal docs or data
     "none": 0.2,           # greeting, update, social
 }
+RISKY = ("payment", "payment_high", "credentials", "install_app")
 
 BANDS = [(60, "HIGH"), (30, "MEDIUM"), (0, "LOW")]
 FLOOR = {"HIGH": 60, "MEDIUM": 30}
@@ -59,7 +66,7 @@ def money_floor(amount):
 def rules(facts):
     """Hard policy floors. Each returns (rule text, floor value) when it fires."""
     fired = []
-    risky_action = facts.get("action") in ("payment", "payment_high", "credentials")
+    risky_action = facts.get("action") in RISKY
     amount = facts.get("amount_inr") if facts.get("action") in ("payment", "payment_high") else None
     high = money_floor(amount)
     at_stake = f"; {inr(amount)} at stake sets the minimum to {high:g}" if high > FLOOR["HIGH"] else ""
@@ -69,6 +76,12 @@ def rules(facts):
         fired.append(("Names a bank account, UPI id or number already on the mule blocklist" + at_stake, high))
     if facts.get("bad_url"):
         fired.append(("Link on a known phishing or malware list", FLOOR["HIGH"]))
+    elif facts.get("dangerous_link"):
+        fired.append(("Link fakes a bank or brand, installs an app, hides behind an IP or is days old", FLOOR["HIGH"]))
+    if facts.get("scam_strong"):
+        fired.append(("Matches a known scam pattern and the wording, link or tactics back it up" + at_stake, high))
+    elif facts.get("scam_pattern"):
+        fired.append(("Matches a known scam pattern", FLOOR["MEDIUM"]))
     if facts.get("digital_arrest"):
         fired.append(("'Digital arrest' pattern: claims to be police/CBI/court and demands payment or staying on call" + at_stake, high))
     if facts.get("audio_both_high"):
@@ -130,6 +143,10 @@ def demo():
     # the floor grows with the money at stake
     ask = lambda amt: fuse([sig("message_tactics", .4)], action="payment_high", facts={"unregistered_channel": True, "amount_inr": amt})["risk"]
     assert (ask(10_000), ask(100_000), ask(1_000_000), ask(50_000_000)) == (60, 75, 90, 90), [ask(a) for a in (1e4, 1e5, 1e6, 5e7)]
+    # not only money: a phishing link or a scam pattern is HIGH even with no amount
+    assert fuse([sig("link_risk", .95)], "click_link", {"dangerous_link": True})["band"] == "HIGH"
+    assert fuse([sig("scam_pattern", .85)], "none", {"scam_pattern": True})["risk"] == 30
+    assert fuse([sig("scam_pattern", .85)], "call_back", {"scam_pattern": True, "scam_strong": True})["risk"] == 60
     # unavailable detector is ignored, not penalised
     assert fuse([{"signal": "audio_spoof", "score": None}])["risk"] == fuse([])["risk"]
     print("fusion ok: A=99.9 HIGH, B=9.8 LOW, C=17.3 -> HIGH by rule")

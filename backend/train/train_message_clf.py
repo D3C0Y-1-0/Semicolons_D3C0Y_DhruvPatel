@@ -48,6 +48,13 @@ def metrics(y, p):
             "F1": f1_score(y, yhat), "FPR": float(((yhat == 1) & (y == 0)).sum() / max(1, (y == 0).sum()))}
 
 
+def weights(n_sms, groups):
+    """Every Indic template counts the same, however many slot fills it produced: a one-line genuine template
+    (an app-update notice) otherwise drowns under scam templates with forty fills each."""
+    counts = {g: (groups == g).sum() for g in set(groups)}
+    return np.concatenate([np.ones(n_sms), [np.sqrt(40 / counts[g]) for g in groups]])
+
+
 def load_sms():
     rows = list(csv.reader(open(HERE / "data" / "sms_spam_collection.tsv", encoding="utf-8"), delimiter="\t"))
     return [r[1] for r in rows], np.array([1 if r[0] == "spam" else 0 for r in rows])
@@ -62,7 +69,8 @@ def main():
     # out-of-fold: every Indic template is predicted by a model that never saw it
     oof, sms_p = np.zeros(len(ix)), []
     for tr, te in GroupKFold(n_splits=5).split(ix, iy, ig):
-        m = make_model().fit(sx_tr + [ix[i] for i in tr], np.concatenate([sy_tr, iy[tr]]))
+        m = make_model().fit(sx_tr + [ix[i] for i in tr], np.concatenate([sy_tr, iy[tr]]),
+                             calibratedclassifiercv__sample_weight=weights(len(sx_tr), ig[tr]))
         oof[te] = m.predict_proba([ix[i] for i in te])[:, 1]
         sms_p.append(m.predict_proba(sx_te)[:, 1])
     res = {"SMS Spam Collection (held-out 20%)": metrics(sy_te, np.mean(sms_p, axis=0)),
@@ -73,7 +81,7 @@ def main():
     worst = sorted(by_t.items(), key=lambda kv: np.mean(kv[1]))[:6]
 
     # final model on everything for deployment
-    final = make_model().fit(sms_x + ix, np.concatenate([sms_y, iy]))
+    final = make_model().fit(sms_x + ix, np.concatenate([sms_y, iy]), calibratedclassifiercv__sample_weight=weights(len(sms_x), ig))
     OUT.parent.mkdir(exist_ok=True)
     joblib.dump(final, OUT)
 
@@ -94,7 +102,7 @@ def main():
               "The classifier is one weighted signal (0.4) in the fusion engine, never the decision on its own."]
     REPORT.parent.mkdir(exist_ok=True)
     REPORT.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    print("\n".join(lines))
+    print("\n".join(lines).encode("ascii", "replace").decode())  # the Windows console can't print the rupee sign
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import { api, form } from "../lib/api.js";
+import { API, api, form } from "../lib/api.js";
 import Icon from "./Icons.jsx";
 
 const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
@@ -26,7 +26,33 @@ export function HoldLock({ until, status }) {
   );
 }
 
-// Human 2FA: the real person reads their rotating code word from the Telegram bot (/code); you type what the caller said.
+// One tap to send over what everyone already has: WhatsApp, SMS, email. Email may already have gone out by itself.
+export function SendLinks({ delivery, who, qr, qrLabel }) {
+  const [copied, setCopied] = useState(false);
+  if (!delivery) return null;
+  const { sent = [], errors = [], links = {}, text } = delivery;
+  const copy = async () => { try { await navigator.clipboard.writeText(text); setCopied(true); } catch { /* clipboard blocked: the buttons still work */ } };
+  const btn = "bg-white border border-white rounded-full px-4 py-2 text-sm font-semibold hover:bg-white/70";
+  return (
+    <div className="rounded-[1.5rem] bg-white/70 border border-white p-5 flex flex-wrap gap-5 items-center">
+      <div className="flex-1 min-w-56 space-y-3">
+        {sent.length > 0 && <p className="font-semibold text-low">Sent to {who} by {sent.join(" and ")}.</p>}
+        <p className="text-sm text-ink-soft">{sent.length ? "Send it on another channel too:" : `Send it to ${who}'s registered number or email. The message is ready, one tap:`}</p>
+        <div className="flex flex-wrap gap-2">
+          {links.whatsapp && <a href={links.whatsapp} target="_blank" rel="noreferrer" className={btn}>WhatsApp</a>}
+          {links.sms && <a href={links.sms} className={btn}>SMS</a>}
+          {links.email && !sent.includes("email") && <a href={links.email} className={btn}>Email</a>}
+          <button type="button" onClick={copy} className={btn}>{copied ? "Copied" : "Copy message"}</button>
+        </div>
+        {errors.map((e) => <p key={e} className="text-xs text-high">{e}</p>)}
+      </div>
+      {qr && <figure className="text-center"><img src={`${API}/qr?data=${encodeURIComponent(qr)}`} alt={qrLabel} className="size-36 rounded-xl" />
+        <figcaption className="text-xs text-ink-soft mt-1 max-w-36">{qrLabel}</figcaption></figure>}
+    </div>
+  );
+}
+
+// Human 2FA: the real person reads their rotating code word from their TrustCheck page (or /code on Telegram); you type what the caller said.
 export function CodeWordCheck({ person, compact = false }) {
   const [said, setSaid] = useState("");
   const [res, setRes] = useState(null);
@@ -34,13 +60,6 @@ export function CodeWordCheck({ person, compact = false }) {
   useEffect(() => { setRes(null); setSaid(""); }, [person?.id]);
   if (!person) return null;
   const first = person.name.split(" ")[0];
-  if (!(person.telegram ?? person.telegram_chat_id)) return (
-    <div className={`rounded-[1.5rem] ${compact ? "glass" : "bg-white/80 border border-white"} p-5`}>
-      <p className="font-bold text-lg">{first} has no code word yet</p>
-      <p className="mt-1 text-sm text-ink-soft">Code words come from the TrustCheck Telegram bot, and {first} hasn't linked Telegram.
-        {" "}{first} sends <b>/start</b> to the bot, then you add the chat id it replies with in <a href="#/app/people" className="underline font-semibold text-ink">Trust Graph</a>. Until then, call back on their registered number.</p>
-    </div>
-  );
   const check = async (e) => {
     e.preventDefault();
     if (!said.trim()) return;
@@ -52,7 +71,7 @@ export function CodeWordCheck({ person, compact = false }) {
   return (
     <form onSubmit={check} className={`rounded-[1.5rem] ${compact ? "glass" : "bg-white/80 border border-white"} p-5 space-y-3`}>
       <p className="font-bold text-lg">Ask for {first}'s code word</p>
-      <p className="text-sm text-ink-soft">The real {first} sends /code to the TrustCheck bot and gets two words that change every 30 seconds. A cloned voice can't know them. Never say them first.</p>
+      <p className="text-sm text-ink-soft">The real {first} opens their TrustCheck page (sent once by WhatsApp, SMS or email from <a href="#/app/people" className="underline font-semibold text-ink">Trust Graph</a>) and reads two words that change every 30 seconds. A cloned voice can't know them. Never say them first.</p>
       <div className="flex flex-wrap gap-2">
         <input value={said} onChange={(e) => { setSaid(e.target.value); setRes(null); }} placeholder="What did they say? e.g. mango river"
           className="flex-1 min-w-48 bg-white border border-rule rounded-xl px-4 py-2.5 outline-none focus:border-night/40" />

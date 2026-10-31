@@ -41,12 +41,11 @@ def send_verification(case, person):
 
 
 def _on_callback(cq):
+    import notify  # late import: keeps the bot module light
     _, cid, ans = cq["data"].split(":")
-    status = "verified" if ans == "yes" else "confirmed_attack"
-    case = db.update_case(cid, status=status, result_patch={"verification": {"answer": ans, "at": time.time()}})
-    if case and ans == "no":
-        import mules  # late import: mules -> db only, but keeps the bot module light
-        mules.harvest_case(case, "confirmed attack")
+    case = notify.record_answer(cid, ans, "telegram")  # a case already answered elsewhere keeps its first answer
+    if case and case["result"].get("verification", {}).get("answer") != ans:
+        ans = case["result"]["verification"]["answer"]
     call("answerCallbackQuery", callback_query_id=cq["id"], text="Recorded. Thank you.")
     call("editMessageText", chat_id=cq["message"]["chat"]["id"], message_id=cq["message"]["message_id"],
          text="Recorded: " + ("you confirmed the request." if ans == "yes" else "NOT you. The payment is on hold and security has been alerted."))

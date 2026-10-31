@@ -19,6 +19,24 @@ export const SAMPLES = [
     text: "Ananya here. Locked out of the bank portal before the audit, need the OTP you just received immediately. Keep this between us please.",
   },
   {
+    name: "KYC phishing link",
+    channel: "sms",
+    sender: "VM-SBIUPD",
+    text: "Dear customer, your SBI YONO account will be blocked today due to pending PAN KYC. Update now to avoid suspension: http://sbi-kyc-update.xyz/login",
+  },
+  {
+    name: "Parcel fee link",
+    channel: "sms",
+    sender: "+91 63000 44120",
+    text: "India Post: your parcel is on hold due to incomplete address. Pay Rs 25 redelivery fee within 12 hours at indiapost-redelivery.top/in or it will be returned.",
+  },
+  {
+    name: "Part-time job (Hinglish)",
+    channel: "whatsapp",
+    sender: "+91 75500 98123",
+    text: "Hello ji, part time job hai! YouTube videos like karo aur daily Rs 3000 earn karo. Pehle Rs 999 registration pay karo, Telegram pe tasks milenge. Limited seats, jaldi reply karo.",
+  },
+  {
     name: "Harmless update",
     channel: "email",
     sender: "rajesh@acme.com",

@@ -15,12 +15,13 @@ load_dotenv(Path(__file__).parent / ".env")
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile, WebSocket, WebSocketDisconnect  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
-from fastapi.responses import PlainTextResponse  # noqa: E402
+from fastapi.responses import HTMLResponse, PlainTextResponse, Response  # noqa: E402
 
 import codeword  # noqa: E402
 import db  # noqa: E402
 import fusion  # noqa: E402
 import mules  # noqa: E402
+import notify  # noqa: E402
 import report  # noqa: E402
 import verify  # noqa: E402
 from detectors import identity, message  # noqa: E402
@@ -52,6 +53,16 @@ ACTIONS = {
 def challenge():
     c = random.choice(CHALLENGES + ["phrase"])
     return f"Ask them to repeat: '{' '.join(random.sample(PHRASE_WORDS, 3))}'" if c == "phrase" else c
+
+
+def qr_codes(path):
+    """Decoded QR payloads in an image (OpenCV, already installed for the face models)."""
+    import cv2
+    try:
+        ok, data, _, _ = cv2.QRCodeDetector().detectAndDecodeMulti(cv2.imread(path))
+        return [d for d in (data if ok else []) if d]
+    except Exception:
+        return []
 
 
 def summarise(result):
@@ -87,6 +98,9 @@ def run_analysis(media_path=None, text="", eml_bytes=None, claimed_id=None, chan
         if ext in IMAGE_EXT:
             im = image.analyze(media_path)
             signals += im["signals"]; errors += im["errors"]; face_emb = im["face_emb"]
+            extra["qr"] = qr_codes(media_path)  # "scan to receive money" QR scams: the payload goes through the text checks
+            if extra["qr"]:
+                text = (text + "\n" if text else "") + "\n".join("QR code: " + q for q in extra["qr"])
 
     msg_signals, facts, info = message.analyze(text, eml_bytes, approval_limit=(person or {}).get("approval_limit"))
     signals += msg_signals
@@ -105,7 +119,7 @@ def run_analysis(media_path=None, text="", eml_bytes=None, claimed_id=None, chan
     result |= {"summary": "", "facts": facts, "channel": channel, "sender": sender, "errors": errors,
                "claimed_person": {"id": person["id"], "name": person["name"], "role": person.get("role"),
                                   "telegram": bool(person.get("telegram_chat_id"))} if person else None,
-               "message": info, "identifiers": identifiers, **extra}
+               "message": info, "identifiers": identifiers, "scam_types": info.get("scam_types", []), **extra}
     # spec 7: even a LOW verdict badges media that looks synthetic (weak "no provenance" metadata doesn't count)
     result["synthetic_media"] = any((s["score"] or 0) >= (0.9 if s["signal"] == "image_synthetic" else 0.5)
                                     for s in signals if s["signal"] in ("audio_spoof", "face_video", "image_univfd", "image_synthetic"))
@@ -114,6 +128,9 @@ def run_analysis(media_path=None, text="", eml_bytes=None, claimed_id=None, chan
     if result["synthetic_media"] and result["band"] == "LOW":
         result["recommended_actions"] = ["Nothing risky is being asked, so no need to block it",
                                          "Don't forward or rely on this media as genuine: it looks AI-generated or manipulated"]
+    if result["scam_types"] and result["band"] != "LOW":  # say what this scam is and the one thing that beats it
+        result["recommended_actions"] = list(dict.fromkeys(t["advice"] for t in result["scam_types"]))[:2] + ACTIONS[result["band"]][:1] + [
+            "Warn family and colleagues: share the warning below"]
     if facts.get("digital_arrest"):
         result["recommended_actions"] = ["Hang up. Real police, CBI or courts never arrest anyone over a video call",
                                          "Don't pay or share any OTP, even 'for verification'",
@@ -161,7 +178,8 @@ async def _save(upload):
 
 @app.get("/health")
 def health():
-    return {"ok": True, "telegram": bool(verify.TOKEN), "llm": bool(os.getenv("ANTHROPIC_API_KEY"))}
+    return {"ok": True, "telegram": bool(verify.TOKEN), "llm": bool(os.getenv("ANTHROPIC_API_KEY")),
+            "email": notify.smtp_ready(), "public_url": notify.public_url()}
 
 
 @app.post("/analyze")
@@ -240,25 +258,98 @@ def case(cid: str):
 
 @app.post("/verify/{cid}")
 def send_verify(cid: str):
+    """Ask the real person, out of band: email goes out by itself, WhatsApp / SMS come back as one-tap links."""
     c = db.get_case(cid)
     if not c:
         raise HTTPException(404)
     cp = c["result"].get("claimed_person")
-    try:
-        verify.send_verification(c, db.get_person(cp["id"]) if cp else None)
-    except Exception as e:
-        raise HTTPException(400, str(e))
-    return db.update_case(cid, status="verifying")
+    person = db.get_person(cp["id"]) if cp else None
+    if not person:
+        raise HTTPException(400, "This message doesn't name anyone in the Trust Graph, so there's nobody to ask. "
+                                 "Call the person it claims to be on a number you already know.")
+    if not (person.get("phone") or person.get("email") or person.get("telegram_chat_id")):
+        raise HTTPException(400, f"{person['name']} has no phone, email or Telegram in the Trust Graph. Add one first.")
+    out = notify.deliver(person, "TrustCheck: did you send this request?", notify.request_text(c, person))
+    out["link"] = notify.case_link(c, person["id"])
+    if person.get("telegram_chat_id") and verify.TOKEN:
+        try:
+            verify.send_verification(c, person)
+            out["sent"].append("telegram")
+        except Exception as e:
+            out["errors"].append(f"telegram failed: {e}")
+    return {**db.update_case(cid, status="verifying"), "delivery": out}
 
 
 @app.post("/cases/{cid}/decision")
 def decision(cid: str, answer: str = Form(...)):
-    """Manual fallback when Telegram is unreachable: answer = yes | no."""
-    c = db.update_case(cid, status="verified" if answer == "yes" else "confirmed_attack",
-                       result_patch={"verification": {"answer": answer, "manual": True}})
-    if c and answer == "no":
-        mules.harvest_case(c, "confirmed attack")
-    return c
+    """Recorded by the employee after checking another way, e.g. a call to the registered number: answer = yes | no."""
+    if answer not in ("yes", "no"):
+        raise HTTPException(400, "answer must be yes or no")
+    return notify.record_answer(cid, answer, "manual")
+
+
+def _case_person(cid):
+    c = db.get_case(cid)
+    pid = (c or {}).get("claimed_person_id") or ((c or {}).get("result", {}).get("claimed_person") or {}).get("id")
+    if not c or not pid:
+        raise HTTPException(404)
+    return c, db.get_person(pid)
+
+
+@app.get("/v/{cid}", response_class=HTMLResponse)
+def verify_page(cid: str, t: str = ""):
+    """The page the real person opens from WhatsApp, SMS or email."""
+    c, p = _case_person(cid)
+    if not notify.signed(p["id"], "v:" + cid, t):
+        raise HTTPException(403, "This link isn't valid.")
+    return notify.case_page(c, p, t)
+
+
+@app.post("/v/{cid}", response_class=HTMLResponse)
+def verify_answer(cid: str, t: str = Form(""), answer: str = Form(...)):
+    c, p = _case_person(cid)
+    if not notify.signed(p["id"], "v:" + cid, t) or answer not in ("yes", "no"):
+        raise HTTPException(403, "This link isn't valid.")
+    c = notify.record_answer(cid, answer, "link")
+    return notify.case_page(c, p, t, answered=c["result"].get("verification", {}).get("answer"))
+
+
+@app.get("/me/{pid}", response_class=HTMLResponse)
+def me_page(pid: str, t: str = ""):
+    """The person's own page: live code word plus anything waiting for their answer. Works on any phone browser."""
+    p = db.get_person(pid)
+    if not p or not notify.signed(pid, "me", t):
+        raise HTTPException(403, "This link isn't valid.")
+    return notify.me_page(p, t)
+
+
+@app.get("/me/{pid}/code")
+def me_code(pid: str, t: str = ""):
+    if not db.get_person(pid) or not notify.signed(pid, "me", t):
+        raise HTTPException(403)
+    return {"phrase": codeword.phrase(db.code_secret(pid)), "seconds_left": codeword.seconds_left(),
+            "pending": notify.pending_for(pid)}
+
+
+@app.post("/people/{pid}/invite")
+def invite(pid: str):
+    """Send someone their personal code-word page once, over WhatsApp, SMS or email."""
+    p = db.get_person(pid)
+    if not p:
+        raise HTTPException(404)
+    link = notify.me_link(pid)
+    text = (f"Hi {p['name'].split()[0]}, this is your TrustCheck page: {link}\nIt shows your code word, which changes every 30 seconds. "
+            "If a colleague asks you to prove a call or message is really from you, read it out. Save the link; don't share it.")
+    return {**notify.deliver(p, "Your TrustCheck code-word page", text), "link": link}
+
+
+@app.get("/qr")
+def qr(data: str):
+    """QR code PNG for a link, so a phone can open it straight from the screen."""
+    import cv2
+    img = cv2.resize(cv2.QRCodeEncoder.create().encode(data[:900]), None, fx=8, fy=8, interpolation=cv2.INTER_NEAREST)
+    img = cv2.copyMakeBorder(img, 24, 24, 24, 24, cv2.BORDER_CONSTANT, value=255)
+    return Response(cv2.imencode(".png", img)[1].tobytes(), media_type="image/png")
 
 
 @app.post("/cases/{cid}/decoy")

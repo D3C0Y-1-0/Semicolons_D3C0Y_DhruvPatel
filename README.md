@@ -71,12 +71,15 @@ npm run dev                      # landing: http://localhost:5173  console: http
 
 **Chrome extension.** Open `chrome://extensions`, turn on Developer mode, click "Load unpacked" and choose the `extension` folder. Open the call tab, click the TrustCheck icon, then "Listen to this tab". If the extension fails at the venue, the dashboard's **Live call** page does the same job through tab sharing.
 
-**Telegram (out-of-band verification + citizen bot).**
-1. Message @BotFather, run `/newbot`, and put the token in `.env` as `TELEGRAM_BOT_TOKEN`.
-2. Restart the backend.
-3. Each enrolled person sends `/start` to the bot. It replies with their chat id; paste that into **People**.
+**Out-of-band verification: WhatsApp, SMS, email (no app, no paid API).**
+"Ask the real person" sends a signed link to the person's *registered* number or email from the Trust Graph, never to the number the request came from. They open it on any phone and tap YES or NO.
+- WhatsApp and SMS: one tap opens the message pre-filled on your phone or laptop (`wa.me` / `sms:` links). Free.
+- Email: sent automatically when `SMTP_USER` / `SMTP_PASS` are in `.env` (a Gmail app password works).
+- In the room: the verdict shows a QR code; the real person scans it and answers.
+- Code word: on **Trust Graph**, "Send their code-word page" gives each person a page with their 30-second code word (add it to the home screen).
+- Phones must reach the backend. On the same Wi-Fi start it with `uvicorn app:app --host 0.0.0.0 --port 8000` and allow it through the Windows firewall, or set `PUBLIC_URL` to a tunnel. This exposes the API to the network: demo only.
 
-Anyone can forward a voice note or message to the bot and get a HIGH, MEDIUM or LOW verdict back in English and Hindi.
+**Telegram (optional).** Put a @BotFather token in `.env` as `TELEGRAM_BOT_TOKEN`. People who use Telegram send `/start` and paste the chat id into **Trust Graph**; YES/NO and `/code` then work there too. Anyone can forward a voice note or message to the bot and get a verdict back in English and Hindi.
 
 ## 4. The model we trained
 
@@ -84,8 +87,8 @@ Anyone can forward a voice note or message to the bot and get a HIGH, MEDIUM or 
 
 | Test set | AUROC | Recall | False-positive rate |
 | --- | --- | --- | --- |
-| SMS Spam Collection, held-out 20% | 0.995 | 0.966 | 0.002 |
-| Indian scams, templates never seen in training (5-fold by template) | 0.849 | 0.802 | 0.200 |
+| SMS Spam Collection, held-out 20% | 0.995 | 0.973 | 0.005 |
+| Indian scams (41 scam and 43 genuine templates incl. links, APKs, OTP takeover), templates never seen in training (5-fold by template) | 0.921 | 0.899 | 0.234 |
 
 The second row is deliberately harsh: whole phrasings are held out. That's why the classifier is one weighted signal (0.4) next to the tactic tagger, not a verdict on its own. Full report: `eval/message_clf_report.md`.
 
@@ -111,6 +114,9 @@ After that, hard policy rules set a minimum. For example, a payment request from
 | Scam-language classifier | Trained by us: char+word TF-IDF, calibrated logistic regression (`models/message_clf.joblib`) | train/train_message_clf.py |
 | Manipulation tactics | Claude API, or the offline English/Hindi lexicon | detectors/message.py |
 | Header, lookalike domain, URL | stdlib + Safe Browsing | detectors/message.py |
+| Scam type (17 patterns: KYC, parcel, challan, lottery, job, investment, loan app, APK, remote access, UPI refund, OTP takeover, sextortion, romance, family emergency, ID harvesting, CEO fraud, digital arrest) | topic + hook regexes, EN/Hinglish | detectors/message.py |
+| Link intelligence | short-link expansion (one hop), fake bank/brand domains, .apk, bare IP, punycode, throwaway TLDs, domain age via RDAP | detectors/message.py |
+| QR codes in images | OpenCV decoder; "scan to receive money" UPI QRs | app.py |
 | Channel, hours, limits, usual requests | Org Trust Graph (SQLite) | detectors/identity.py |
 
 ## 6. Not built yet (in priority order)

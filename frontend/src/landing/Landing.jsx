@@ -26,7 +26,7 @@ const PIPELINE = [
   ["Read", "Urgency, secrecy, authority, a new bank account, a request for an OTP, in English, Hindi or Hinglish.", "Tactic tagger with a bilingual lexicon, email header and lookalike-domain forensics"],
   ["Recognise", "Does this match the real person: their voiceprint and face, their channels, hours and approval limits?", "ECAPA voiceprints, ArcFace face match, Org Trust Graph"],
   ["Weigh", "Evidence in log-odds, multiplied by how much damage the request could do, with policy rules as a floor.", "Every point of the score is traceable"],
-  ["Verify", "Before anything moves, the real person confirms on the phone they enrolled. A NO holds the payment.", "Telegram YES/NO, payment hold, CERT-In draft, campaign clustering"],
+  ["Verify", "Before anything moves, the real person confirms on the phone they enrolled. A NO holds the payment.", "YES/NO over WhatsApp, SMS or email, payment hold, CERT-In draft, campaign clustering"],
 ];
 
 function Hero() {

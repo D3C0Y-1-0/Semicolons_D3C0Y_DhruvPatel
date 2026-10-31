@@ -28,7 +28,7 @@ export default function AppShell({ page }) {
             <p className="glass-strong rounded-full px-5 py-2.5 font-bold">{PAGES[page]?.[0] || "Check a message"}</p>
             <p className="ml-auto glass-strong rounded-full px-4 py-2.5 text-sm font-semibold flex items-center gap-2" aria-live="polite">
               <span className={`size-2 rounded-full ${health ? "bg-low" : health === false ? "bg-high" : "bg-ink-soft/40"}`} />
-              {health ? `Backend online${health.telegram ? ", Telegram on" : ""}${health.llm ? ", LLM on" : ""}` : health === false ? "Backend offline: run uvicorn on port 8000" : "Connecting…"}
+              {health ? `Backend online${health.email ? ", email on" : ""}${health.telegram ? ", Telegram on" : ""}${health.llm ? ", LLM on" : ""}` : health === false ? "Backend offline: run uvicorn on port 8000" : "Connecting…"}
             </p>
           </div>
           <AnimatePresence mode="wait">

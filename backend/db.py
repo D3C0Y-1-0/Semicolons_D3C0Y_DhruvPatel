@@ -121,8 +121,16 @@ def stats():
         status = dict(c.execute("SELECT status, COUNT(*) FROM cases GROUP BY status").fetchall())
         campaigns = c.execute("SELECT campaign, COUNT(*) n FROM cases WHERE campaign IS NOT NULL GROUP BY campaign ORDER BY n DESC").fetchall()
         people = c.execute("SELECT COUNT(*) FROM people").fetchone()[0]
+        protected, types = 0.0, {}
+        for (raw,) in c.execute("SELECT result FROM cases WHERE band != 'LOW' AND status != 'verified'"):
+            r = json.loads(raw)  # ponytail: full scan of risky cases; add columns if the queue grows past a few thousand
+            if r.get("action") in ("payment", "payment_high"):
+                protected += (r.get("facts") or {}).get("amount_inr") or 0
+            for t in r.get("scam_types") or []:
+                types[t["label"]] = types.get(t["label"], 0) + 1
     return {"bands": bands, "status": status, "people": people,
-            "campaigns": [{"id": r[0], "size": r[1]} for r in campaigns]}
+            "campaigns": [{"id": r[0], "size": r[1]} for r in campaigns],
+            "money_held": protected, "scam_types": sorted(types.items(), key=lambda kv: -kv[1])}
 
 
 def update_case(cid, **fields):

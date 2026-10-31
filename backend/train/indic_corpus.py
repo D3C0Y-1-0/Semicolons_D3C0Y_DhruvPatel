@@ -41,6 +41,24 @@ SCAM = {
     "family_emergency": "Your son has been arrested in {c}. Send {s} immediately for bail. Don't tell anyone, he is scared and cannot talk.",
     "tech_support": "Hello sir, I am calling from Microsoft. Your computer has a virus. Install TeamViewer now and give me the code so I can fix it.",
     "sextortion_threat": "We have recordings of your video call. Pay {s} in crypto within {m} or it will be sent to all your contacts. Do not contact police.",
+    # beyond money asks: links, apps, data and account takeover
+    "kyc_link": "Dear customer your {bank} account will be suspended today. Complete PAN KYC now at {bad}/kyc to avoid blocking.",
+    "kyc_link_hing": "Aapka {bank} account aaj band ho jayega. KYC update karne ke liye is link pe click karo: {bad}/update",
+    "parcel_link": "{courier}: your parcel is on hold due to incomplete address. Update details and pay Rs 25 redelivery fee at {bad} within 12 hrs.",
+    "challan_link": "Your vehicle has a pending traffic e-challan of Rs 500. Pay immediately at {bad} to avoid court action and licence suspension.",
+    "it_refund_link": "Income Tax Dept: you are eligible for a refund of {s}. Submit your bank details at {bad} to receive it today.",
+    "reward_points": "Your {bank} credit card reward points worth {s} expire today. Redeem now: {bad}",
+    "apk_loan": "Pre-approved instant loan of {a} sanctioned in your name. Download the app now to get money in 10 minutes: {bad}/loan.apk",
+    "apk_update": "{bank} alert: install the new security update app from {bad}/secure.apk or your net banking will stop working today.",
+    "code_mistake": "Hi, I sent you a 6 digit code by mistake on your phone. Please forward it to me quickly, it's urgent.",
+    "code_mistake_hing": "Sorry galti se aapke number pe OTP chala gaya, please woh code bhej do jaldi.",
+    "sim_esim": "Your SIM will be deactivated in 2 hours due to eSIM upgrade. Reply with the OTP you receive to continue service.",
+    "family_new_number": "Hi mom, this is my new number, my phone broke. Can you send {s} to this UPI for an urgent bill? Will explain later.",
+    "romance_gift": "My dear, I have sent you a gift parcel from London with gold and dollars. Pay the customs clearance fee of {s} to the agent to receive it.",
+    "upi_mistake": "I sent {s} to your account by mistake, please return it. Scan this QR code and enter your UPI PIN to receive the refund.",
+    "aadhaar_harvest": "For the work from home job, please send your Aadhaar card, PAN card and a selfie on {app} to complete verification.",
+    "electricity_link": "Electricity bill not updated. Your power will be disconnected tonight. Pay now at {bad} or call our officer.",
+    "crypto_group": "Join our VIP crypto signals group. Guaranteed 3x profit in 7 days, members earning {a} monthly. Deposit {s} to start.",
 }
 
 BENIGN = {
@@ -77,10 +95,27 @@ BENIGN = {
     "card_due": "Reminder: credit card bill of {s} is due on 5 Nov. Pay through the official bank app. Ignore if already paid.",
     "urgent_legit_2": "{n}, urgent: the server room AC has failed, please move the backup drives to rack 3 today. Facilities is on it.",
     "recruiter_legit": "Hi {n}, thanks for applying. Your interview with our team is scheduled for Monday 11 am on Teams. No fee is charged at any stage.",
+    # genuine messages with links, apps and codes: the model must learn the lure, not the URL
+    "order_track": "Your {courier} shipment is out for delivery today. Track it at {good}. No payment is due.",
+    "doc_share": "{n}, sharing the slides for tomorrow: {good}/slides. Comments welcome before 5 pm.",
+    "meeting_link": "Join the weekly sync at 4 pm: {good}/meet. Agenda is in the invite.",
+    "app_update_legit": "A new version of the company HR app is available on the Play Store. Update when convenient, nothing changes in your data.",
+    "bank_statement": "Your {bank} e-statement for October is ready. View it in the official mobile app or net banking. We never ask for your OTP or PIN.",
+    "kyc_reminder_legit": "{bank}: your periodic KYC update is due. Please visit your home branch with ID proof, or update in the official app. Ignore if done.",
+    "otp_login": "{o} is your one time password to log in to {bank} net banking. Valid for 5 minutes. Do not share it with anyone.",
+    "refund_legit": "Refund of {s} for your cancelled order has been credited to your original payment method. No action needed.",
+    "newsletter": "This week on the company blog: three lessons from our Q3 launch. Read more at {good}/blog",
+    "family_call": "Mom, my phone battery is dying, I'll call you from Rohit's phone tonight. Reached {c} safely.",
 }
 
 SLOTS = dict(n=NAMES, r=ROLES, a=AMOUNTS, s=SMALL, app=APPS, m=MINUTES, ag=AGENCIES, c=CITIES,
-             o=["482913", "771204", "093382", "560017"])
+             o=["482913", "771204", "093382", "560017"],
+             bank=["SBI", "HDFC Bank", "ICICI Bank", "Axis Bank", "Kotak"],
+             courier=["India Post", "Blue Dart", "Delhivery", "DTDC"],
+             bad=["http://sbi-kyc-update.xyz", "bit.ly/3kYc9a", "https://indiapost-redelivery.top", "http://192.168.43.10",
+                  "echallan-parivahan.cc", "https://hdfc-secure-login.online", "tinyurl.com/refund-it", "https://kyc-verify-now.live"],
+             good=["https://www.flipkart.com/track", "https://docs.google.com/d/8f2", "https://meet.google.com/abc-defg-hij",
+                   "https://www.acme.com/news", "https://www.amazon.in/orders"])
 
 
 def fill(template, rng, k):
