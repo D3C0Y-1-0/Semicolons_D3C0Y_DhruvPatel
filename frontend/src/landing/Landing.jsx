@@ -99,9 +99,6 @@ function Hero() {
             <li className="flex items-center gap-2"><Icon name="rupee" className="size-4 text-ink-soft" />Over ₹10 lakh limit</li>
             <li className="flex items-center gap-2"><Icon name="phone" className="size-4 text-ink-soft" />Unusual channel</li>
           </ul>
-          <span className="relative block mt-5 h-2 rounded-full heat-scale" aria-hidden>
-            <motion.span className="absolute top-1/2 size-4 -translate-y-1/2 -translate-x-1/2 rounded-full bg-white ring-4 ring-night" animate={{ left: `${Math.max(4, call.risk - 2)}%` }} transition={{ type: "spring", stiffness: 70, damping: 16 }} />
-          </span>
         </div>
       </div>
 
