@@ -77,7 +77,11 @@ npm run dev                      # landing: http://localhost:5173  console: http
 - Email: sent automatically when `SMTP_USER` / `SMTP_PASS` are in `.env` (a Gmail app password works).
 - In the room: the verdict shows a QR code; the real person scans it and answers.
 - Code word: on **Trust Graph**, "Send their code-word page" gives each person a page with their 30-second code word (add it to the home screen).
-- Phones must reach the backend. On the same Wi-Fi start it with `uvicorn app:app --host 0.0.0.0 --port 8000` and allow it through the Windows firewall, or set `PUBLIC_URL` to a tunnel. This exposes the API to the network: demo only.
+- Phones must reach the backend. College and guest Wi-Fi isolate devices, so use a Cloudflare quick tunnel (free, no account, works on any network including a phone hotspot):
+  1. Once: download `cloudflared-windows-amd64.exe` from https://github.com/cloudflare/cloudflared/releases/latest (save as `cloudflared.exe`).
+  2. Keep running during the demo: `cloudflared.exe tunnel --url http://127.0.0.1:8000`
+  3. Put the printed `https://….trycloudflare.com` in `backend/.env` as `PUBLIC_URL=`. No restart needed; new QR codes use it.
+  localhost.run was tried and drops idle tunnels within minutes. Anyone with the address reaches the API while it runs: close it after the demo. If it fails on stage, Telegram YES/NO needs no tunnel.
 
 **Telegram (optional).** Put a @BotFather token in `.env` as `TELEGRAM_BOT_TOKEN`. People who use Telegram send `/start` and paste the chat id into **Trust Graph**; YES/NO and `/code` then work there too. Anyone can forward a voice note or message to the bot and get a verdict back in English and Hindi.
 
