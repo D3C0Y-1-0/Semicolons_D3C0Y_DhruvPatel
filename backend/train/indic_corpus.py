@@ -59,6 +59,12 @@ SCAM = {
     "aadhaar_harvest": "For the work from home job, please send your Aadhaar card, PAN card and a selfie on {app} to complete verification.",
     "electricity_link": "Electricity bill not updated. Your power will be disconnected tonight. Pay now at {bad} or call our officer.",
     "crypto_group": "Join our VIP crypto signals group. Guaranteed 3x profit in 7 days, members earning {a} monthly. Deposit {s} to start.",
+    # families found in testing on 1 Nov (screenshots and hand-typed scams that slipped through)
+    "windfall_royal": "A royal family member has decided to donate part of his wealth and you have been chosen as the lucky beneficiary. Send {s} to open the account in {c} for the transfer.",
+    "windfall_inheritance": "Dear friend, my late client left an unclaimed inheritance with no next of kin. You are chosen to receive it. Pay {s} legal charges to release the funds.",
+    "prize_survey": "You've been selected to enter the {courier} prize draw this week! Complete a short survey and you could win a FREE iPhone. Enter here: {bad}",
+    "job_online_staff": "Hello! I'm from the HR department of a big app. Be our online staff, work in your spare time on your phone and earn {s} per day. Contact us on WhatsApp for details: wa.me/447785390714",
+    "courier_zip": "{courier}: your parcel is being held due to an invalid zip code address. Update your details here within 24 hours or it will be returned: {bad}",
 }
 
 BENIGN = {
@@ -106,6 +112,12 @@ BENIGN = {
     "refund_legit": "Refund of {s} for your cancelled order has been credited to your original payment method. No action needed.",
     "newsletter": "This week on the company blog: three lessons from our Q3 launch. Read more at {good}/blog",
     "family_call": "Mom, my phone battery is dying, I'll call you from Rohit's phone tonight. Reached {c} safely.",
+    # genuine look-alikes for the families above
+    "royal_news": "The Prince visited the children's hospital in {c} today and announced a donation to the new ward.",
+    "interview_selected": "Hi {n}, you have been selected for the second interview round on Monday at 11 am. No fee is charged at any stage.",
+    "real_survey": "Thanks for shopping with us. Tell us how we did in a 2-minute survey in the official app. No prizes, no payment.",
+    "real_job": "Hi {n}, we reviewed your application for the analyst role. Please share a time for a video interview this week on the company careers portal.",
+    "rent_reminder": "Hi {n}, gentle reminder to transfer this month's rent of {s} to the usual account by the 5th. Thanks!",
 }
 
 SLOTS = dict(n=NAMES, r=ROLES, a=AMOUNTS, s=SMALL, app=APPS, m=MINUTES, ag=AGENCIES, c=CITIES,

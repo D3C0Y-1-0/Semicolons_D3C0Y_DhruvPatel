@@ -1,0 +1,21 @@
+path,label,kind,text,claimed_person_id,channel
+,attack,scenario,"Greetings from Amazon Rewards team! Your mobile number is the lucky pick of our anniversary celebration. Grab your Samsung Galaxy by paying only the shipping of Rs 299 here: amzn-anniversary.shop/claim",,sms
+,attack,scenario,"Mera naam Pooja hai, main aapko video call pe dekhna chahti hoon. Ab aapki recording mere paas hai, 20000 bhejo warna sab ko bhej dungi.",,whatsapp
+,attack,scenario,"Dear Valued Client, your HDFC credit card points (5,670) will lapse at midnight. Convert them to cash instantly: hdfc-points-redeem.co/cash",,sms
+,attack,scenario,"Hi dear, I am a fund manager at a big crypto exchange. Small investment of Rs 5,000 today will become Rs 50,000 in one week. I will guide you, just open account with my link.",,whatsapp
+,attack,scenario,"FedEx: A package addressed to you from Mumbai was found to contain 5 passports and MDMA. Press 1 to talk to the customs officer or a case will be registered against you.",,phone
+,attack,scenario,"Your Netflix account is on hold because we couldn't validate your billing information. Please visit netflix-account-billing.help to update and continue watching.",,email
+,attack,scenario,"Uncle namaste, I am Rohan's friend. He met with an accident and is in hospital, his phone is broken. Please send 35000 on this number for the operation, very urgent.",,whatsapp
+,attack,scenario,"Congratulations! Your resume has been shortlisted for a work-from-home data entry job with Rs 25,000 salary. Pay a refundable security deposit of Rs 1,500 to confirm your seat.",,sms
+,attack,scenario,"Electricity board: Your meter KYC is incomplete. To avoid power cut today, download the official 'Bijli Update' app from bit.ly/bijli-kyc and fill your details.",,sms
+,attack,scenario,"Hello, I am calling from the RBI. Your bank account is linked to a fraud case. To protect your money, transfer all your balance to this safe RBI account immediately.",,phone
+,attack,scenario,"You have an outstanding toll payment of Rs 120 on FASTag. Pay now to avoid a penalty of Rs 1,500: fastag-pay-toll.online",,sms
+,attack,scenario,"Hey, it's your manager. I'm stuck in a client meeting. Can you buy 5 Amazon gift cards worth Rs 10,000 each for a client and send me the codes? I'll reimburse you today.",,sms
+,benign,scenario,"Your FASTag has been recharged with Rs 1,000. Available balance Rs 1,240. - Paytm Payments Bank",,sms
+,benign,scenario,"Your Netflix payment of Rs 649 was successful. Your plan renews on 1 Dec. Manage your account in the Netflix app.",,email
+,benign,scenario,"Hi, I'm Pooja from the HR team. Your onboarding is on Monday at 10 am. Please bring your ID card and two photos to the office reception.",,email
+,benign,scenario,"Rohan here, reached the hospital for mom's check-up, everything is fine. Will call you in the evening.",,whatsapp
+,benign,scenario,"Amazon: your order of Samsung Galaxy M14 has shipped and will arrive on Thursday. Track it in the Amazon app.",,sms
+,benign,scenario,"Dear customer, your HDFC credit card statement is ready. You have 5,670 reward points. Redeem them anytime in the official HDFC app.",,sms
+,benign,scenario,"Team, the client meeting got extended. I'll join the stand-up tomorrow instead. Please send me the notes.",,email
+,benign,scenario,"Electricity bill for October: Rs 1,430, due 15 Nov. Pay in the official app or at the counter. Ignore if paid.",,sms

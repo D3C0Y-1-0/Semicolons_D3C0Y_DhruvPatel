@@ -97,11 +97,11 @@ SCAM_TYPES = {  # key: (label, topic, hook or None, what to do)
                        LINK_CUE + "|" + PAY_CUE, "Check challans only on parivahan.gov.in and refunds only on incometax.gov.in."),
     "lottery_prize": ("Lottery / prize bait",
                       r"\b(lottery|lucky draw|prize draw|kbc|jackpot|lucky winner|prize money|giveaway)\b|\byou (have )?won\b"
-                      r"|\bchance to win\b|\bwin (a|an|the) (free|brand new|new)\b|\bfree (iphone|phone|laptop|gift card|voucher)\b",
+                      r"|\bchance to win\b|\blucky (pick|number|draw)\b|\bwin (a|an|the) (free|brand new|new)\b|\bfree (iphone|phone|laptop|gift card|voucher)\b",
                       PAY_CUE + "|" + LINK_CUE + r"|\bclaim\b|\bcall\b|whats ?app|\benter\b|\bsurvey\b|\bregister\b",
                       "You can't win a draw you never entered. Never pay or fill in a 'survey' to receive a prize."),
     "job_task": ("Task / part-time job scam",
-                 r"\b(part[- ]?time|work from (home|phone|mobile)|daily (income|earning)|like (youtube )?videos?|rate (hotels|products)|online (tasks?|staff|job|work)|prepaid tasks?|spare time)\b"
+                 r"\b(part[- ]?time|work[- ]from[- ](home|phone|mobile)|daily (income|earning)|like (youtube )?videos?|rate (hotels|products)|online (tasks?|staff|job|work)|prepaid tasks?|spare time)\b"
                  r"|\bearn\b.{0,6}[\d,]{3,}.{0,25}\b(per|a|every) (day|hour|week)\b|\bearn (rs\.?|₹|inr|\$|£|€)?\s?[\d,]+",
                  PAY_CUE + r"|\btasks?\b|telegram|wh\w{0,3}app\b|wa\.me|registration|\bbonus\b|contact us|leave a message", "Real jobs never ask you to pay. 'Pay to unlock tasks' always ends in a loss."),
     "investment": ("Investment / trading scam",
@@ -123,14 +123,22 @@ SCAM_TYPES = {  # key: (label, topic, hook or None, what to do)
                          r"\b(mobile |phone )?number\b.{0,30}\b(will be |is being )?(disconnect\w*|deactivat\w*|blocked|suspended|band)\b.{0,80}\b(press \d|code|otp|kyc|call)\b|\b(sent|forwarded) (you )?(a |the |an )?(\d[- ]?digit )?(code|otp)\b.{0,40}\bmistake\b|\b(sim|esim)\b.{0,40}\b(block\w*|deactivat\w*|band|upgrade|swap)\b|\b(whatsapp|instagram|facebook|telegram) (verification |login )?code\b",
                          None, "Never forward a code you receive. It's the key to your account."),
     "sextortion": ("Sextortion",
-                   r"\b(nude|intimate|private|obscene|video call|recordings?)\b.{0,80}\b(leak|viral|contacts|family|share|sent to)\b",
-                   PAY_CUE + r"|\bcrypto\b|\bbitcoin\b", "Don't pay: paying brings more demands. Report at cybercrime.gov.in or call 1930."),
+                   r"\b(nude|intimate|private|obscene|video call|recordings?)\b.{0,80}\b(leak|viral|contacts|family|share|sent to)\b"
+                   r"|\b(recording|video|photo)s?\b.{0,40}\b(mere paas|viral|sab ko|bhej dung\w*|leak)\b",
+                   PAY_CUE + r"|\bcrypto\b|\bbitcoin\b|warna", "Don't pay: paying brings more demands. Report at cybercrime.gov.in or call 1930."),
     "romance_gift": ("Romance / gift-parcel scam",
                      r"\b(gift|parcel|package)\b.{0,60}\b(for you|sent you|from (the )?(uk|usa|london|abroad))\b|\b(my love|darling|sweetheart|my dear)\b",
                      r"\bcustoms\b|\bclearance\b|" + PAY_CUE, "Never pay customs or fees for a gift from someone you met online."),
     "family_emergency": ("Family emergency / new number",
-                         r"\b(mom|mum|mummy|mumma|dad|papa|maa)\b.{0,40}\bnew number\b|\b(son|daughter|beta|bete|beti|husband|brother|bhai)\b.{0,40}\b(arrested|accident|hospital|police station|jail|kidnap\w*)",
+                         r"\b(mom|mum|mummy|mumma|dad|papa|maa)\b.{0,40}\bnew number\b|\b(accident|hospital|operation|icu|surgery)\b.{0,100}\b(send|transfer|bhejo|bhej do|pay)\b.{0,20}\d|\b(son|daughter|beta|bete|beti|husband|brother|bhai)\b.{0,40}\b(arrested|accident|hospital|police station|jail|kidnap\w*)",
                          PAY_CUE + r"|\bbail\b|\bmoney\b", "Call the family member on their old, known number before sending anything."),
+    "courier_drugs": ("Fake parcel-with-drugs / customs case (digital arrest opener)",
+                      r"\b(parcel|package|courier|shipment|fedex|dhl)\b.{0,80}\b(drugs?|mdma|narcotics|passports?|contraband|illegal)\b",
+                      r"\bpress \d\b|\bofficer\b|\bcase\b|\bcustoms\b|\bpolice\b|\bcbi\b|\bncb\b",
+                      "Courier companies don't transfer you to police. Hang up: this is how 'digital arrest' scams start. Call 1930."),
+    "safe_account": ("'Move your money to a safe account' scam",
+                     r"\b(safe|secure|safety|rbi|protected)\s+(rbi\s+)?account\b|\btransfer (all|entire|the whole of) (your |the )?(balance|money|savings)\b",
+                     None, "No bank, RBI or police officer ever asks you to move money to a 'safe account'. Hang up and call your bank."),
     "otp_ask": ("OTP / PIN / CVV request",
                 r"\b(tell|share|send|give|read|forward|confirm|provide|bata\w*|bhej\w*)\b.{0,40}\b(otp|cvv|upi pin|atm pin|pin|password|card number|(verification |security |\d[- ]?digit )?code (you|that|which) (receive|got|get))\b"
                 r"|\b(otp|cvv|pin|card number)\b.{0,30}\b(bata\w*|bhej\w*|share karo|de do|dijiye)\b",
@@ -143,8 +151,8 @@ SCAM_TYPES = {  # key: (label, topic, hook or None, what to do)
                  PAY_CUE + r"|\bopen (an |a )?(\w+ )?account\b|\blakh\b|\binr\b|\bdollars?\b",
                  "Nobody gives away a fortune to a stranger. Any request to pay first, to 'open an account' or 'release the funds', is the scam."),
     "advance_fee": ("Pay-a-fee-to-receive scam",
-                    r"\b(processing|registration|clearance|activation|delivery|release|gst|customs|insurance|verification|unlock|diplomat\w*|duty|correction|redelivery)\s+(\w+\s+)?(fee|fees|charges?|amount)\b",
-                    r"\b(receive|claim|get|prize|won|winner|loan|release|refund|cashback|reward|unlock|car|job|parcel|gift|money|send you|savings|box|consignment|deliver\w*|order|address)\b",
+                    r"\b(processing|registration|clearance|activation|delivery|shipping|release|gst|customs|insurance|verification|unlock|security|refundable|diplomat\w*|duty|correction|redelivery)\s+(\w+\s+)?(fee|fees|charges?|amount)\b",
+                    r"\b(receive|claim|get|prize|won|winner|loan|release|refund|cashback|reward|unlock|car|job|parcel|gift|money|seat|confirm|offer|joining|send you|savings|box|consignment|deliver\w*|order|address)\b",
                     "Nobody genuine makes you pay a fee to receive a prize, loan, refund or parcel."),
     "personal_data": ("Personal data harvesting",
                       r"\b(send|share|upload|provide|submit)\b.{0,30}\b(aadhaa?r|pan( card)?|passport|selfie|date of birth|dob|bank details|card details)\b",
@@ -152,6 +160,10 @@ SCAM_TYPES = {  # key: (label, topic, hook or None, what to do)
 }
 SCAM_RX = {k: (re.compile(t, re.I | re.S), re.compile(h, re.I) if h else None) for k, (_, t, h, _) in SCAM_TYPES.items()}
 CREDENTIAL_TYPES = {"bank_impersonation", "account_takeover", "kyc_phishing", "otp_ask"}
+# patterns that are scams on their own (a stranger asking for AnyDesk, an APK, the OTP, a PIN "to receive", pay-to-get-a-job,
+# an inheritance): HIGH without needing the wording model or a second tactic to agree
+STRONG_TYPES = {"remote_access", "malware_apk", "otp_ask", "account_takeover", "refund_upi", "sextortion", "bank_impersonation",
+                "job_task", "windfall", "advance_fee", "courier_drugs", "safe_account", "family_emergency"}
 
 
 def scam_types(text):
@@ -172,7 +184,7 @@ CHEAP_TLDS = {"xyz", "top", "click", "live", "buzz", "icu", "online", "site", "s
 BRANDS = {  # name in a domain -> its real domains
     "sbi": ("sbi.co.in", "onlinesbi.sbi", "sbi.bank.in", "sbicard.com"), "hdfc": ("hdfcbank.com", "hdfc.com", "hdfcbank.bank.in"),
     "icici": ("icicibank.com", "icici.bank.in"), "axis": ("axisbank.com",), "kotak": ("kotak.com",), "pnb": ("pnbindia.in",),
-    "paytm": ("paytm.com",), "phonepe": ("phonepe.com",), "gpay": ("pay.google.com",), "amazon": ("amazon.in", "amazon.com"),
+    "amzn": ("amzn.in", "amzn.to", "amazon.in"), "paytm": ("paytm.com",), "phonepe": ("phonepe.com",), "gpay": ("pay.google.com",), "amazon": ("amazon.in", "amazon.com"),
     "flipkart": ("flipkart.com",), "indiapost": ("indiapost.gov.in",), "incometax": ("incometax.gov.in",), "uidai": ("uidai.gov.in",),
     "aadhaar": ("uidai.gov.in",), "epfo": ("epfindia.gov.in",), "npci": ("npci.org.in",), "parivahan": ("parivahan.gov.in",),
     "echallan": ("parivahan.gov.in",), "irctc": ("irctc.co.in",), "airtel": ("airtel.in",), "jio": ("jio.com",), "rbi": ("rbi.org.in",),
@@ -346,7 +358,7 @@ def header_checks(hdr):
     return signals, facts
 
 
-URL_RE_BARE = re.compile(r"\b(?:[a-z0-9-]+\.)+(?:xyz|top|click|live|buzz|icu|online|site|shop|club|in|com|ly|gl|gd|at|co|me|info|net|org|apk)(?:/[^\s<>\"')]*)?", re.I)
+URL_RE_BARE = re.compile(r"\b(?:[a-z0-9-]+\.)+(?:xyz|top|click|live|buzz|icu|online|site|shop|store|club|help|support|app|biz|cc|pw|tk|ml|ga|cf|gq|sbs|cfd|cyou|rest|bond|vip|win|loan|work|link|fun|lol|in|com|ly|gl|gd|at|co|me|info|net|org|io|apk)(?:/[^\s<>\"')]*)?", re.I)
 
 
 def find_urls(text):
@@ -441,9 +453,47 @@ def _clf():
         return None
 
 
+SEM_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models", "message_semantic.joblib")
+
+
+@functools.cache
+def _sem():
+    """Meaning-based classifier (train/train_semantic_clf.py): multilingual sentence embeddings + logistic regression."""
+    try:
+        import joblib
+        import torch
+        from transformers import AutoModel, AutoTokenizer
+        bundle = joblib.load(SEM_PATH)
+        dev = "cuda" if torch.cuda.is_available() else "cpu"
+        model = AutoModel.from_pretrained(bundle["encoder"]).to(dev).eval()
+        return AutoTokenizer.from_pretrained(bundle["encoder"]), (model.half() if dev == "cuda" else model), dev, bundle["clf"]
+    except Exception:  # not trained or not downloaded: the pattern classifier works alone
+        return None
+
+
+def semantic_prob(text):
+    s = _sem()
+    if s is None or not text.strip():
+        return None
+    import torch
+    tok, model, dev, clf = s
+    enc = tok([text[:1000]], padding=True, truncation=True, max_length=256, return_tensors="pt").to(dev)
+    with torch.no_grad():
+        h = model(**enc).last_hidden_state.float()
+    m = enc["attention_mask"].unsqueeze(-1).float()
+    v = torch.nn.functional.normalize((h * m).sum(1) / m.sum(1).clamp(min=1), dim=1).cpu().numpy()
+    return float(clf.predict_proba(v)[0, 1])
+
+
 def classifier_prob(text):
+    """Average of the pattern (TF-IDF) and meaning (semantic) classifiers: on hand-written held-out messages the average
+    beat either alone (eval/semantic_clf_report.md). Either one alone if the other is unavailable."""
     m = _clf()
-    return float(m.predict_proba([text[:4000]])[0, 1]) if m is not None and text.strip() else None
+    ps = [float(m.predict_proba([text[:4000]])[0, 1])] if m is not None and text.strip() else []
+    sp = semantic_prob(text)
+    if sp is not None:
+        ps.append(sp)
+    return sum(ps) / len(ps) if ps else None
 
 
 def parse_amount(text):
@@ -495,7 +545,7 @@ def analyze(text="", eml_bytes=None, approval_limit=None):
     if p is not None:
         signals.append({"signal": "message_classifier", "label": "Scam-language classifier", "score": round(p, 3),
                         "why": f"wording {'resembles' if p >= .5 else 'does not resemble'} known scam messages (p {p:.2f})",
-                        "evidence": [{"type": "metric", "text": "trained on SMS Spam Collection + bilingual Indian scam corpus; see eval/message_clf_report.md"}]})
+                        "evidence": [{"type": "metric", "text": "average of a word-pattern and a meaning-based model, trained on SMS Spam Collection + bilingual Indian scam corpus; see eval/semantic_clf_report.md"}]})
 
     amount = extras.get("amount_inr") or parse_amount(text)
     new_ben = extras.get("new_beneficiary") or "new_beneficiary" in found
@@ -547,7 +597,7 @@ def analyze(text="", eml_bytes=None, approval_limit=None):
               "scam_wording_ask": (p or 0) >= 0.8 and action in ("payment", "payment_high", "credentials", "install_app", "click_link")
               and bool(set(found) - {"payment_request"}),  # plus a pressure tactic: a plain "pay the rent" stays LOW
               # a pattern backed by scam wording, a risky link or two manipulation tactics is no longer a maybe
-              "scam_strong": bool(types) and ((p or 0) >= 0.6 or len(found) >= 2 or any(
+              "scam_strong": bool(types) and ((p or 0) >= 0.6 or len(found) >= 2 or bool(kinds & STRONG_TYPES) or any(
                   x["signal"] == "link_risk" and x["score"] >= 0.6 for x in signals))}
     return signals, facts, {"text": text, "highlights": spans, "tactics": found, "header": header, "scam_types": types}
 

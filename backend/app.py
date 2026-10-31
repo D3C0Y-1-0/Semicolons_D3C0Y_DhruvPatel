@@ -213,7 +213,7 @@ def warm_up():
     for name, load in [("voice-clone detector", audio.pellav2), ("voiceprint", audio.ecapa),
                        ("transcriber", lambda: audio.whisper(audio.WHISPER_SIZE, audio.WHISPER_DEVICE)),
                        ("face finder", video.face_app), ("face-swap detector", video.gend), ("AI-image detector", image.univfd),
-                       ("message classifier", message._clf),
+                       ("message classifier", message._clf), ("meaning classifier", message._sem),
                        ("screenshot reader", lambda: screenshot_text(os.path.join(os.path.dirname(__file__), "models", "warmup.png")))]:
         try:
             load()
