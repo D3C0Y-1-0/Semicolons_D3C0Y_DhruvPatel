@@ -25,6 +25,7 @@ from detectors import identity, message  # noqa: E402
 AUDIO_EXT = {".wav", ".mp3", ".m4a", ".ogg", ".opus", ".flac", ".aac", ".amr"}
 VIDEO_EXT = {".mp4", ".mov", ".mkv", ".avi", ".webm", ".3gp"}
 IMAGE_EXT = {".jpg", ".jpeg", ".png", ".webp", ".heic"}
+LIVE_CONTEXT_S = 90  # seconds of the call the live transcript covers
 
 CHALLENGES = [  # GOTCHA (NYU): occlusion and face deformation break real-time deepfakes best
     "Ask them to slowly wave a hand across their face.",
@@ -278,8 +279,11 @@ async def live(ws: WebSocket, session: str, claimed_person_id: str = None, chann
             except Exception:
                 pass
             try:
-                tr = await asyncio.to_thread(audio.transcribe, wav[done:], os.getenv("WHISPER_LIVE_SIZE", "small"))
-                transcript = (transcript + " " + tr["text"]).strip()
+                # Re-transcribe the recent call as one piece: 3 s fragments cut words in half ("Please tr-") and
+                # hid the payment request. ponytail: older speech drops out after LIVE_CONTEXT_S; keep a rolling summary if calls run long.
+                tr = await asyncio.to_thread(audio.transcribe, wav[-LIVE_CONTEXT_S * audio.SR:],
+                                             os.getenv("WHISPER_LIVE_SIZE", "small"))
+                transcript = tr["text"].strip() or transcript
             except Exception:
                 pass
             if voice_emb is None and person and len(wav) >= audio.SR * 6:

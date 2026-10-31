@@ -132,6 +132,8 @@ def voice_embedding(wav):
 
 
 WHISPER_DEVICE = os.getenv("WHISPER_DEVICE", "auto")
+# Biases Whisper towards Indian money words it otherwise mishears ("45 lakh" came out as "45 lock")
+PROMPT = "Payment request: transfer 45 lakh rupees, 2 crore, UPI, IFSC, OTP, NEFT, RTGS, CFO, CBI, arrest."
 
 
 @functools.cache
@@ -143,7 +145,8 @@ def whisper(size, dev):
 def transcribe(wav, size=None):
     global WHISPER_DEVICE
     try:
-        segments, info = whisper(size or WHISPER_SIZE, WHISPER_DEVICE).transcribe(wav, word_timestamps=True, vad_filter=True)
+        segments, info = whisper(size or WHISPER_SIZE, WHISPER_DEVICE).transcribe(wav, word_timestamps=True, vad_filter=True,
+                                                                             initial_prompt=PROMPT)
         segments = list(segments)  # decoding is lazy; force it here so a GPU failure surfaces inside this try
     except Exception:
         if WHISPER_DEVICE == "cpu":
