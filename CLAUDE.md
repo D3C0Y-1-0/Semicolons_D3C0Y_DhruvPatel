@@ -19,7 +19,7 @@ The PS wants detection of deepfake-*enabled social engineering*, analysing "cont
 ```
 R = 100 × sigmoid(b + Σ wᵢ · ln(sᵢ/(1−sᵢ))) × Impact,   b = ln(0.05/0.95) = −2.944
 ```
-Then hard policy rules set floors (e.g. payment/credential request from an unregistered channel or to a new beneficiary is never below HIGH = 60). Bands: LOW < 30, MEDIUM 30–59, HIGH ≥ 60.
+Then hard policy rules set floors (e.g. payment/credential request from an unregistered channel or to a new beneficiary is never below HIGH = 60). The HIGH floor grows with the money at stake (`money_floor` / `moneyFloor`): 60 up to ₹10,000, 75 at ₹1 lakh, 90 from ₹10 lakh, so a weak-evidence text asking for more money ranks higher. Bands: LOW < 30, MEDIUM 30–59, HIGH ≥ 60.
 
 Worked examples (must stay true; both `backend/fusion.py` and `frontend/src/lib/fusion.js` assert them):
 - A, Arup-style fake CFO wire: **99.9 HIGH**

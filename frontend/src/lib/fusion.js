@@ -12,6 +12,8 @@ export const IMPACT_LABEL = {
 
 const logit = (s) => { const x = Math.min(Math.max(s, 1e-4), 1 - 1e-4); return Math.log(x / (1 - x)); };
 export const bandOf = (r) => (r >= 60 ? "HIGH" : r >= 30 ? "MEDIUM" : "LOW");
+// The HIGH floor grows with the money at stake: 60 up to ₹10,000, 75 at ₹1 lakh, 90 from ₹10 lakh (same as fusion.py)
+export const moneyFloor = (amt) => (!amt || amt <= 10000 ? 60 : Math.round(Math.min(90, 60 + 15 * Math.log10(amt / 10000)) * 10) / 10);
 
 export function fuse(signals, action = "none", facts = {}) {
   const rows = signals.filter((s) => s.score != null).map((s) => {
@@ -26,7 +28,7 @@ export function fuse(signals, action = "none", facts = {}) {
   if (risky && (facts.unregistered_channel || facts.new_beneficiary)) rules.push("Payment or credential request from an unregistered channel or to a new beneficiary");
   if (facts.known_mule) rules.push("Names a bank account, UPI id or number already on the mule blocklist");
   if (facts.digital_arrest) rules.push("'Digital arrest' pattern");
-  if (rules.length) risk = Math.max(risk, 60);
+  if (rules.length) risk = Math.max(risk, moneyFloor(["payment", "payment_high"].includes(action) ? facts.amount_inr : null));
   risk = Math.round(risk * 10) / 10;
   rows.sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution));
   return { risk, band: bandOf(risk), threat: t, impact: IMPACT[action], action, signals: rows, rules_fired: rules, prior_logodds: Math.round(BIAS * 1000) / 1000 };
@@ -44,5 +46,7 @@ if (typeof process !== "undefined" && process.argv?.[1]?.endsWith("fusion.js")) 
   const c = [sig("audio_spoof", 0.3), sig("voice_mismatch", 0.2), sig("face_video", 0.4), sig("message_tactics", 0.92), sig("context_anomaly", 0.9)];
   ok(fuse(c, "payment_high").risk === 17.3, `C maths ${fuse(c, "payment_high").risk}`);
   ok(fuse(c, "payment_high", { unregistered_channel: true, new_beneficiary: true }).risk === 60, "C rule");
+  const ask = (amt) => fuse([sig("message_tactics", 0.4)], "payment_high", { unregistered_channel: true, amount_inr: amt }).risk;
+  ok([1e4, 1e5, 1e6, 5e7].map(ask).join() === "60,75,90,90", `money floor ${[1e4, 1e5, 1e6, 5e7].map(ask)}`);
   console.log("fusion.js ok: A=99.9 HIGH, B=9.8 LOW, C=17.3 -> HIGH by rule");
 }

@@ -5,6 +5,8 @@ Run `python fusion.py` to check the three worked examples from the plan.
 """
 import math
 
+from detectors.identity import inr
+
 PRIOR = 0.05  # assumed share of flagged communications that are attacks
 BIAS = math.log(PRIOR / (1 - PRIOR))  # -2.944
 
@@ -47,22 +49,32 @@ def band_of(r):
     return next(name for cut, name in BANDS if r >= cut)
 
 
+def money_floor(amount):
+    """The HIGH floor grows with the money at stake: 60 up to ₹10,000, 75 at ₹1 lakh, 90 from ₹10 lakh."""
+    if not amount or amount <= 10_000:
+        return FLOOR["HIGH"]
+    return round(min(90.0, 60 + 15 * math.log10(amount / 10_000)), 1)
+
+
 def rules(facts):
-    """Hard policy floors. Each returns (rule text, floor band) when it fires."""
+    """Hard policy floors. Each returns (rule text, floor value) when it fires."""
     fired = []
     risky_action = facts.get("action") in ("payment", "payment_high", "credentials")
+    amount = facts.get("amount_inr") if facts.get("action") in ("payment", "payment_high") else None
+    high = money_floor(amount)
+    at_stake = f"; {inr(amount)} at stake sets the minimum to {high:g}" if high > FLOOR["HIGH"] else ""
     if risky_action and (facts.get("unregistered_channel") or facts.get("new_beneficiary")):
-        fired.append(("Payment or credential request from an unregistered channel or to a new beneficiary", "HIGH"))
+        fired.append(("Payment or credential request from an unregistered channel or to a new beneficiary" + at_stake, high))
     if facts.get("known_mule"):
-        fired.append(("Names a bank account, UPI id or number already on the mule blocklist", "HIGH"))
+        fired.append(("Names a bank account, UPI id or number already on the mule blocklist" + at_stake, high))
     if facts.get("bad_url"):
-        fired.append(("Link on a known phishing or malware list", "HIGH"))
+        fired.append(("Link on a known phishing or malware list", FLOOR["HIGH"]))
     if facts.get("digital_arrest"):
-        fired.append(("'Digital arrest' pattern: claims to be police/CBI/court and demands payment or staying on call", "HIGH"))
+        fired.append(("'Digital arrest' pattern: claims to be police/CBI/court and demands payment or staying on call" + at_stake, high))
     if facts.get("audio_both_high"):
-        fired.append(("Both audio models score the voice as synthetic (>= 0.9)", "MEDIUM"))
+        fired.append(("Both audio models score the voice as synthetic (>= 0.9)", FLOOR["MEDIUM"]))
     if facts.get("voice_mismatch_enrolled"):
-        fired.append(("Voice does not match the enrolled voiceprint of the claimed person", "MEDIUM"))
+        fired.append(("Voice does not match the enrolled voiceprint of the claimed person", FLOOR["MEDIUM"]))
     return fired
 
 
@@ -83,7 +95,7 @@ def fuse(signals, action="none", facts=None):
     risk = 100 * t * impact
     fired = rules(facts)
     for _, floor in fired:
-        risk = max(risk, FLOOR[floor])
+        risk = max(risk, floor)
 
     rows.sort(key=lambda r: -abs(r["contribution"]))
     return {
@@ -115,6 +127,9 @@ def demo():
     assert fuse(c_signals, action="payment_high")["risk"] == 17.3
     c = fuse(c_signals, action="payment_high", facts={"unregistered_channel": True, "new_beneficiary": True})
     assert c["risk"] == 60 and c["band"] == "HIGH" and c["rules_fired"], c
+    # the floor grows with the money at stake
+    ask = lambda amt: fuse([sig("message_tactics", .4)], action="payment_high", facts={"unregistered_channel": True, "amount_inr": amt})["risk"]
+    assert (ask(10_000), ask(100_000), ask(1_000_000), ask(50_000_000)) == (60, 75, 90, 90), [ask(a) for a in (1e4, 1e5, 1e6, 5e7)]
     # unavailable detector is ignored, not penalised
     assert fuse([{"signal": "audio_spoof", "score": None}])["risk"] == fuse([])["risk"]
     print("fusion ok: A=99.9 HIGH, B=9.8 LOW, C=17.3 -> HIGH by rule")
