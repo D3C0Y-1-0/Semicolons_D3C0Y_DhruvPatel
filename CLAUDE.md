@@ -112,7 +112,7 @@ Fresh demo data: stop the backend, delete `backend/trustcheck.db`, run `python s
 
 Done and tested (self-checks, API, browser at desktop and phone widths): every-scam-type detection, link intelligence, QR scams, verification over WhatsApp/SMS/email links with phone pages, code-word page, impact dashboard, share/read-aloud. Message classifier retrained with 41 scam and 43 genuine Indic templates, equal weight per template: unseen-template AUROC 0.921, recall 0.899, FPR 0.234 (was 0.849 / 0.802 / 0.200). Held-out message eval (eval/message_holdout_report.md): 3 hand-written sets scored before use: 53/68 scams HIGH, 52/52 genuine LOW; new types otp_ask, advance_fee.
 AV training (train/train_image_head.py, train/train_voice_head.py, extras in train/requirements-train.txt; keep huggingface-hub < 1.0 or transformers breaks): UnivFD head refit on COCO vs SD-Turbo: AI images caught 11% -> 97%, false alarms 3% -> 6% (models/univfd_fc_tuned.pth, loaded by default, USE_TUNED_HEADS=0 to disable). pellav2 measured on Indian English/Hindi TTS incl. Opus: 100% / 0 false alarms; refit head was worse, not shipped. Video: needs FF++/Celeb-DF access or team Deep-Live-Cam clips (eval/run_eval.py ready). Training data lives in backend/train/data/big (gitignored, ~5 GB).
-Not yet: the phone flow over real Wi-Fi (needs `--host 0.0.0.0`), SMTP email with a real app password, voice CLONE eval (consented team clones), deck slide 10 numbers.
+Not yet: the phone flow over real Wi-Fi (needs `--host 0.0.0.0`), SMTP email with a real app password, voice CLONE eval (consented team clones). Deck slide 10 now carries the measured numbers (31 Oct night).
 
 ## Next steps, in priority order
 
