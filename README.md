@@ -107,7 +107,9 @@ The second row is deliberately harsh: whole phrasings are held out. That's why t
 
 The 2023 head misses today's one-step diffusion images; the refit catches them. Same generator in train and test (held-out prompts), so a new generator family can score lower. `USE_TUNED_HEADS=0` goes back to the original. Report: `eval/image_head_report.md`.
 
-**Cloned voices (pellav2), measured on Indian English and Hindi.** `python train/train_voice_head.py` builds 600 real clips (LibriSpeech, FLEURS Hindi) and 600 TTS fakes (7 Edge neural voices incl. en-IN and hi-IN, plus Windows TTS as an engine never trained on), all MP3-encoded identically, each also through Opus 16 kbps. On 532 held-out clips the original pellav2 caught every fake (99.7% after Opus) with 0 false alarms on 172 real speakers; refitting its head did not help, so the original stays. Not yet measured: clones of a specific person. Report: `eval/voice_head_report.md`.
+**Cloned voices (pellav2), measured on Indian English and Hindi.** `python train/train_voice_head.py` builds 600 real clips (LibriSpeech, FLEURS Hindi) and 600 TTS fakes (7 Edge neural voices incl. en-IN and hi-IN, plus Windows TTS as an engine never trained on), all MP3-encoded identically, each also through Opus 16 kbps. On 532 held-out clips the original pellav2 caught every fake (99.7% after Opus) with 0 false alarms on 172 real speakers; refitting its head did not help, so the original stays. Report: `eval/voice_head_report.md`.
+
+**Voice clones of a specific person.** `train/gen_voice_clones.py` (F5-TTS, its own venv) clones 40 LibriSpeech speakers from one clip each, 120 clones; `train/eval_voice_clones.py` scores them: pellav2 caught 120/120 (also after WhatsApp Opus), flagging 0.8% of 360 real clips of the same speakers. The voiceprint check accepted 100% of the clones as the real person (clones scored 0.78 similarity, the person's own other clips 0.70): measured proof that biometrics alone can't stop a clone, which is why TrustCheck adds the code word and the real person's YES/NO. Report: `eval/voice_clone_report.md`.
 
 ## 5. How a verdict is made
 
