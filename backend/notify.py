@@ -39,7 +39,10 @@ def lan_ip():
 
 
 def public_url():
-    return (os.getenv("PUBLIC_URL") or f"http://{lan_ip()}:{os.getenv('PORT', '8000')}").rstrip("/")
+    # read .env each time: a free tunnel gets a new address on every reconnect, and this avoids a backend restart
+    from dotenv import dotenv_values
+    url = dotenv_values(os.path.join(os.path.dirname(__file__), ".env")).get("PUBLIC_URL") or os.getenv("PUBLIC_URL")
+    return (url or f"http://{lan_ip()}:{os.getenv('PORT', '8000')}").rstrip("/")
 
 
 def sign(pid, what):
