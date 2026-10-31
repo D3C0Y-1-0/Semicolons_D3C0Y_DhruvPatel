@@ -487,8 +487,11 @@ def analyze(text="", eml_bytes=None, approval_limit=None):
     gift = re.search(r"gift ?cards?|bitcoin|crypto|usdt", text, re.I)
     types = scam_types(text)
     kinds = {t["type"] for t in types}
-    digital_arrest = bool(extras.get("digital_arrest")) or ("fear_threat" in found and (
-        "payment_request" in found or re.search(r"stay on|don'?t disconnect", text, re.I)))
+    # "court action" on a challan or "customs" on a gift parcel is a threat, not a fake police officer: digital arrest
+    # needs the police / arrest language itself
+    digital_arrest = bool(extras.get("digital_arrest")) or ("fear_threat" in found and bool(re.search(
+        r"\b(arrest\w*|warrant|cbi|ncb|police|cyber ?crime|narcotics|drugs|money laundering|enforcement directorate)\b|गिरफ्तार|पुलिस",
+        text, re.I)) and ("payment_request" in found or bool(re.search(r"stay on|don'?t disconnect|disconnect mat|pe raho", text, re.I))))
     if digital_arrest:
         types.insert(0, {"type": "digital_arrest", "label": "Digital arrest / fake police",
                          "advice": "Real police, CBI or courts never arrest anyone over a video call. Hang up and call 1930."})
