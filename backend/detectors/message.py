@@ -16,14 +16,17 @@ ORG_DOMAINS = [d.strip().lower() for d in os.getenv("ORG_DOMAINS", "acme.com").s
 
 TACTICS = {
     "urgency": [r"\burgent(ly)?\b", r"\bimmediately\b", r"\basap\b", r"\bright now\b", r"\bwithin \d+ ?(min|mins|minutes|hours?|hrs?)\b",
-                r"\btoday itself\b", r"\bjaldi\b", r"\bturant\b", r"\babhi ke abhi\b", r"तुरंत", r"जल्दी", r"अभी"],
+                r"\btoday itself\b", r"\bjaldi\b", r"\bturant\b", r"\babhi ke abhi\b", r"तुरंत", r"जल्दी", r"अभी",
+                r"\b(lost|forgot|left) my (wallet|purse|card|phone)\b", r"\bemergency\b", r"\bstuck (at|in)\b", r"\bin (big )?trouble\b"],
     "secrecy": [r"\bconfidential\b", r"\bdon'?t (tell|share|discuss)\b", r"\bkeep (this|it) (between us|quiet|private)\b",
                 r"\bdo not (tell|discuss|share)\b", r"\bkisi(ko| ko) mat batana\b", r"\bsecret\b", r"किसी को मत", r"गोपनीय"],
     "authority": [r"\b(ceo|cfo|coo|md|managing director|director|chairman|boss)\b", r"\bon behalf of\b", r"\bsir has asked\b",
                   r"\bmanagement has (asked|approved)\b"],
     "payment_request": [r"\b(wire|transfer|neft|rtgs|imps|upi|remit)\b", r"\bpayment\b", r"\binvoice\b", r"\bbeneficiary\b",
                         r"₹\s?[\d,]+", r"\brs\.?\s?[\d,]+", r"\binr\s?[\d,]+", r"\b\d+(\.\d+)?\s?(lakh|lac|crore|cr)\b",
-                        r"\bpaise? (bhejo|transfer)\b", r"पैसे", r"भुगतान", r"\bgift ?cards?\b", r"\b(bitcoin|crypto|usdt)\b"],
+                        r"\b[\d,]+(\.\d+)?\s?(rs|rupees?|rupay|rupaye|rupiya|bucks)\b", r"\b[\d,]+\s?/-", r"\b\d+(\.\d+)?\s?k\s?(rs|rupees?|inr)\b",
+                        r"\bsend (me )?(some )?(money|cash|funds?|the amount)\b", r"\b(lend|loan) me\b", r"\b(gpay|google pay|phone ?pe|paytm)\b",
+                        r"\bpaise? (bhejo|transfer|chahiye|de do)\b", r"पैसे", r"भुगतान", r"\bgift ?cards?\b", r"\b(bitcoin|crypto|usdt)\b"],
     "credential_request": [r"\botp\b", r"\bpassword\b", r"\bpin\b", r"\blog ?in (details|credentials)\b", r"\bverify your account\b",
                            r"\b(anydesk|teamviewer|quick ?support|rustdesk)\b", r"\bremote access\b", r"\bcvv\b"],
     "channel_switch": [r"\bwhats ?app\b", r"\bpersonal (number|phone|email)\b", r"\bcall me on\b", r"\btelegram\b",
@@ -45,7 +48,16 @@ TACTIC_LABEL = {
 HOMOGLYPHS = str.maketrans({"0": "o", "1": "l", "3": "e", "5": "s", "@": "a", "а": "a", "е": "e", "о": "o", "р": "p",
                             "с": "c", "х": "x", "і": "i"})
 URL_RE = re.compile(r"https?://[^\s<>\"')]+|www\.[^\s<>\"')]+", re.I)
-AMOUNT_RE = re.compile(r"(?:₹|rs\.?|inr)\s?([\d,]+(?:\.\d+)?)|([\d.]+)\s?(lakh|lac|crore|cr)\b", re.I)
+AMOUNT_RE = re.compile(r"(?:₹|rs\.?|inr)\s?([\d,]+(?:\.\d+)?)|([\d.]+)\s?(lakh|lac|crore|cr|k)\b"
+                       r"|\b([\d,]+(?:\.\d+)?)\s?(?:rs\b|rupees?\b|rupay\b|rupaye\b|rupiya\b|bucks\b|inr\b|/-)", re.I)
+UNIT = {"lakh": 1e5, "lac": 1e5, "crore": 1e7, "cr": 1e7, "k": 1e3}
+# "I need 10000, can you send it" names an amount and asks for it without any banking word
+ASK_RE = re.compile(r"\b(send|need|lend|loan|give|transfer|pay|borrow|bhej\w*|de ?do|chahiye|chaiye)\b", re.I)
+# "Rs 85,000 has been credited" reports money, it doesn't ask for it
+NOTICE_RE = re.compile(r"\b(has been|was|is|got) (credited|debited|received|refunded|deposited)\b", re.I)
+# a bare number right after the ask ("need 10000 urgently") is an amount even without "rs"
+BARE_ASK_RE = re.compile(r"\b(?:need|send|lend|loan|give|transfer|pay|borrow)\b\W+(?:\w+\W+){0,3}?(\d{1,3}(?:,\d{2,3})+|\d{3,9})\b"
+                         r"(?=\s*(?:$|[^\w\s]|(?:urgently|urgent|asap|now|please|plz|pls|today|tonight|tomorrow|till|by|to|for|and|bro|yaar|immediately)\b))", re.I)  # not "500 copies"
 BLOCKLIST = {l.strip().lower() for l in open(os.path.join(os.path.dirname(__file__), "url_blocklist.txt"), encoding="utf-8")
              if l.strip() and not l.startswith("#")} if os.path.exists(os.path.join(os.path.dirname(__file__), "url_blocklist.txt")) else set()
 
@@ -204,11 +216,17 @@ def classifier_prob(text):
 def parse_amount(text):
     best = None
     for m in AMOUNT_RE.finditer(text):
-        if m.group(1):
-            v = float(m.group(1).replace(",", ""))
-        else:
-            v = float(m.group(2)) * (1e5 if m.group(3).lower() in ("lakh", "lac") else 1e7)
+        try:
+            if m.group(1) or m.group(4):
+                v = float((m.group(1) or m.group(4)).replace(",", ""))
+            else:
+                v = float(m.group(2)) * UNIT[m.group(3).lower()]
+        except ValueError:  # e.g. a stray "." matched as a number
+            continue
         best = max(best or 0, v)
+    if best is None:
+        bare = [float(m.group(1).replace(",", "")) for m in BARE_ASK_RE.finditer(text)]
+        best = max([v for v in bare if v >= 100], default=None)
     return best
 
 
@@ -230,6 +248,9 @@ def analyze(text="", eml_bytes=None, approval_limit=None):
 
     llm = llm_tactics(text)
     spans, extras = llm if llm else (lexicon_tactics(text), {})
+    ask = ASK_RE.search(text)
+    if ask and parse_amount(text) and not any(sp["tactic"] == "payment_request" for sp in spans):
+        spans.append({"type": "span", "tactic": "payment_request", "start": ask.start(), "end": ask.end(), "text": ask.group(0)})
     found = sorted({sp["tactic"] for sp in spans})
     k = len(found)
     score = 0.1 if k == 0 else min(0.97, 1 - 0.6 ** k)  # 1 tactic=0.40, 2=0.64, 3=0.78, 5=0.92
@@ -247,7 +268,7 @@ def analyze(text="", eml_bytes=None, approval_limit=None):
     gift = re.search(r"gift ?cards?|bitcoin|crypto|usdt", text, re.I)
     if "credential_request" in found or extras.get("action") == "credentials":
         action = "credentials"
-    elif "payment_request" in found or extras.get("action") == "payment":
+    elif ("payment_request" in found and not (NOTICE_RE.search(text) and not ASK_RE.search(text))) or extras.get("action") == "payment":
         over = amount is not None and approval_limit is not None and amount > approval_limit
         action = "payment_high" if (over or new_ben or gift) else "payment"
     elif extras.get("action") == "information" or re.search(r"\b(send|share|forward) (me )?(the )?(file|data|list|document|report|details)", text, re.I):
@@ -269,6 +290,12 @@ def demo():
     t = next(x for x in s if x["signal"] == "message_tactics")
     assert {"urgency", "secrecy", "payment_request", "new_beneficiary", "channel_switch"} <= set(info["tactics"]), info["tactics"]
     assert t["score"] > 0.9 and f["action"] == "payment_high" and f["amount_inr"] == 4_500_000, (t, f)
+
+    # informal asks with no banking words still ask for money
+    for ask in ("i need 10000 rs urgently i lost my wallet can u plz send me", "bro need 10k urgently, gpay kar do"):
+        assert analyze(ask, approval_limit=0)[1]["action"] == "payment_high", ask
+    for ok in ("We need 500 copies of the brochure for the event.", "Your salary of Rs 85,000 has been credited."):
+        assert analyze(ok)[1]["action"] == "none", ok
 
     benign = "Happy birthday team! Cake in the pantry at 4."
     s, f, _ = analyze(benign)
