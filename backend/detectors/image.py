@@ -60,6 +60,8 @@ def provenance_signal(path):
 
 
 UNIVFD_FC = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models", "univfd_fc.pth")
+# head refit by train/train_image_head.py (see eval/image_head_report.md); USE_TUNED_HEADS=0 goes back to the authors' head
+UNIVFD_TUNED = os.path.join(os.path.dirname(UNIVFD_FC), "univfd_fc_tuned.pth")
 CLIP_MEAN, CLIP_STD = np.array([0.48145466, 0.4578275, 0.40821073]), np.array([0.26862954, 0.26130258, 0.27577711])
 
 
@@ -72,7 +74,8 @@ def univfd():
     dtype = torch.float16 if device() == "cuda" else torch.float32
     clip = CLIPVisionModelWithProjection.from_pretrained("openai/clip-vit-large-patch14", torch_dtype=dtype).to(device()).eval()
     fc = torch.nn.Linear(768, 1)
-    fc.load_state_dict(torch.load(UNIVFD_FC, map_location="cpu"))
+    tuned = os.path.exists(UNIVFD_TUNED) and os.getenv("USE_TUNED_HEADS", "1") != "0"
+    fc.load_state_dict(torch.load(UNIVFD_TUNED if tuned else UNIVFD_FC, map_location="cpu"))
     return clip, fc.to(device()).eval()
 
 

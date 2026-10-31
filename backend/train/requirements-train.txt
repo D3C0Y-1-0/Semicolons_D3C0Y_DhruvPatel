@@ -1,0 +1,6 @@
+# training-only extras (the app does not need them). Keep huggingface-hub below 1.0 for transformers 4.56:
+# pip install "diffusers<0.36" accelerate edge-tts "huggingface-hub>=0.34,<1.0"
+diffusers<0.36
+accelerate
+edge-tts
+huggingface-hub>=0.34,<1.0

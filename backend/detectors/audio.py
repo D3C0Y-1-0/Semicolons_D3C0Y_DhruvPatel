@@ -20,6 +20,7 @@ PELLA_REPO = "Sadanie/pellav2-audio-deepfake-detector"
 # Security: pellav2's model class is downloaded code. Pin a commit hash here once you've read it.
 PELLA_REVISION = os.getenv("PELLAV2_REVISION", "29daea8b04acf2d3f11d1d0da6b01c17fc8a1e4b")
 WHISPER_SIZE = os.getenv("WHISPER_SIZE", "large-v3")
+TUNED_HEAD = Path(__file__).resolve().parent.parent / "models" / "pellav2_head_tuned.pt"  # from train/train_voice_head.py
 
 
 def device():
@@ -56,6 +57,9 @@ def pellav2():
     model = mod.Detector()
     weights = hf_hub_download(PELLA_REPO, "pellav2_detector.pt", revision=PELLA_REVISION)
     model.load_state_dict(torch.load(weights, map_location="cpu"))
+    if TUNED_HEAD.exists() and os.getenv("USE_TUNED_HEADS", "1") != "0":  # see eval/voice_head_report.md
+        head = torch.load(TUNED_HEAD, map_location="cpu")
+        model.head.load_state_dict({"weight": head["weight"], "bias": head["bias"]})
     model = model.to(device()).eval()
     return (model.half() if device() == "cuda" else model), mod  # fp16 halves VRAM (2.2 -> 1.1 GB); run under autocast
 

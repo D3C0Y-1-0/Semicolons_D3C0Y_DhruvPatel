@@ -1,0 +1,51 @@
+path,label,kind,text,claimed_person_id,channel
+,attack,scenario,"ALERT: Your HDFC NetBanking access is restricted. Re-verify PAN within 24 hrs: hdfc-netbank-verify.live/pan",,sms
+,attack,scenario,"Dear user, ur Paytm KYC expired. Wallet will be blocked tonight. Call our executive 8235104477 to complete KYC.",,sms
+,attack,scenario,"BlueDart: Shipment AWB 7739201 couldn't be delivered, address incomplete. Reschedule (Rs 12 fee): bit.ly/bd-resched",,sms
+,attack,scenario,"Customs dept: a package from UK in your name contains foreign currency. Pay clearance charges Rs 35,000 today else legal action.",,phone
+,attack,scenario,"MSEDCL: Dear consumer, power supply will be cut at 10:30 pm tonight as last month bill is unpaid. Contact officer Mr. Sharma 7044918823",,sms
+,attack,scenario,"Parivahan: E-challan no. MH0412 of Rs 1000 is unpaid. Pay before midnight to avoid licence cancellation: parivahan-echallan.online",,sms
+,attack,scenario,"Congrats! U r selected as Lucky Winner of Jio 10th anniversary. Prize Rs 15 lakh + iPhone. Send Rs 7,800 GST to claim.",,whatsapp
+,attack,scenario,"Hi! I'm Riya from Amazon HR. Earn 2000-8000 daily working from home, just rate products. Need no experience. Contact on Telegram @riya_tasks",,whatsapp
+,attack,scenario,"Join SEBI-registered VIP group. Our members got 300% profit on IPO tips last month. Assured returns, start with just 5000.",,whatsapp
+,attack,scenario,"Your loan of Rs 2,00,000 is pre-approved, no CIBIL check. Pay Rs 1,999 processing fee and get money in 5 minutes.",,sms
+,attack,scenario,"SBI REWARDZ: your 9,850 points expire today. Redeem cash into your account now: sbi-rewardz.top/redeem",,sms
+,attack,scenario,"Install the new 'Aadhaar Update.apk' from this link to keep your Aadhaar active: tinyurl.com/aadhaar-upd",,whatsapp
+,attack,scenario,"Sir I am calling from Airtel. Your SIM will stop working in 2 hours due to KYC. Please tell me the OTP you just got to verify.",,phone
+,attack,scenario,"Hey, sorry, I accidentally sent my WhatsApp login code to your number. Can you send it back? Need it right now.",,whatsapp
+,attack,scenario,"I transferred 3000 to your GPay by mistake bhai, please return it. Check the request I sent and enter PIN to approve.",,whatsapp
+,attack,scenario,"Dad, my phone fell in water, this is my new number. I need Rs 18,000 for college fees today, please send to this UPI. Don't call, I'm in class.",,whatsapp
+,attack,scenario,"Your son is with us at the police station after an accident. Send 50,000 immediately for bail or he will be jailed. Don't tell anyone.",,phone
+,attack,scenario,"We recorded your private video chat. Pay Rs 40,000 by evening or the clip goes to your family and office contacts.",,whatsapp
+,attack,scenario,"Hello dear, I have sent you a gift box with jewellery and dollars from London. The courier agent needs customs fee of Rs 28,500, please pay.",,whatsapp
+,attack,scenario,"Hello, this is Microsoft support. We detected a virus on your laptop. Please download AnyDesk so our engineer can remove it.",,phone
+,attack,scenario,"Main Mumbai cyber crime se bol raha hoon. Aapke Aadhaar se 4 SIM aur ek parcel me drugs mile hain. Call pe bane raho aur 1.5 lakh security deposit karo.",,phone
+,attack,scenario,"Aapka bijli connection aaj raat 9 baje kat jayega kyunki bill update nahi hua. Turant is number pe call karo 9123456780.",,sms
+,attack,scenario,"Bhai urgent hai, 15k bhej de abhi, kal wapas kar dunga. Google pay kar de is number pe, kisi ko mat bolna.",,whatsapp
+,attack,scenario,"For your job onboarding, kindly share Aadhaar front and back, PAN card photo and a selfie holding the PAN on this WhatsApp.",,whatsapp
+,attack,scenario,"Priya, this is Ananya. In a meeting with investors, can't talk. Buy 8 Google Play gift cards of Rs 5000 each and send me the codes. Keep it quiet.",,sms
+,attack,scenario,"Income Tax Department: Your refund of Rs 14,320 has been approved. Verify your account details at incometax-refund.info to receive it.",,sms
+,attack,scenario,"Dear customer, suspicious login on your ICICI account. To block it, share the card number, expiry and CVV with our fraud team now.",,phone
+,attack,scenario,"Scan this QR code to receive your Rs 2,500 cashback from PhonePe. Offer valid only today.",,whatsapp
+,benign,scenario,"Your OTP for login to ICICI iMobile is 552301. Valid for 3 minutes. ICICI Bank never asks for OTP over call.",,sms
+,benign,scenario,"Rs 2,450 debited from A/c XX7781 on 31-Oct to SWIGGY via UPI. Not you? Call 18002662 to block.",,sms
+,benign,scenario,"Your Amazon order #405-778 has shipped. Track your package in the Amazon app or at https://www.amazon.in/gp/your-account/order-history",,sms
+,benign,scenario,"Hi team, sharing the Q3 review deck: https://docs.google.com/presentation/d/1x9Fq. Please add comments by Friday.",,email
+,benign,scenario,"Join the design review on Google Meet at 3 pm: https://meet.google.com/xyz-abcd-efg",,email
+,benign,scenario,"Dear customer, your electricity bill of Rs 1,860 for October is generated. Due date 18 Nov. Pay via the MSEDCL app.",,sms
+,benign,scenario,"Reminder: your car insurance renews on 5 Dec. Renew from your policy page in the official app. Ignore if renewed.",,sms
+,benign,scenario,"Mom I reached the hostel, will call after dinner. Network is bad here.",,whatsapp
+,benign,scenario,"Kal 10 baje standup hai, Rohit ko bhi bata dena. Aur laptop charger le aana.",,whatsapp
+,benign,scenario,"Congratulations on your promotion, Meera! Drinks on Friday to celebrate.",,whatsapp
+,benign,scenario,"Your Zomato order is out for delivery. Share OTP 4812 with the delivery partner only at your door.",,sms
+,benign,scenario,"Payment of Rs 45,000 received from ACME PVT LTD against invoice 2291. Thank you.",,email
+,benign,scenario,"HR: Diwali holidays are 1-3 Nov. The office reopens on Monday 4 Nov.",,email
+,benign,scenario,"Hi Priya, can you send me the updated vendor list before the 4 pm call? It's on the shared drive.",,email
+,benign,scenario,"PNR 2245178903: your train to Pune is confirmed, coach S4 seat 22. Have a safe journey.",,sms
+,benign,scenario,"Your Flipkart refund of Rs 1,299 has been credited to your original payment method.",,sms
+,benign,scenario,"New version of the TrustCheck app is on the Play Store. Update when convenient.",,email
+,benign,scenario,"Dear parents, PTA meeting is on Saturday at 10 am in the school hall. Please attend.",,sms
+,benign,scenario,"Bhai match 7 baje start hai, tickets mere paas hain, 6:30 tak gate 4 pe mil.",,whatsapp
+,benign,scenario,"Your Jio recharge of Rs 299 is successful. Validity 28 days. Data 1.5 GB/day.",,sms
+,benign,scenario,"Hi Rajesh, the auditors are coming Tuesday 11 am. Please keep the Q2 ledgers ready.",,email
+,benign,scenario,"Weekly newsletter: 5 tips to stay safe from online scams. Read at https://www.rbi.org.in/awareness",,email

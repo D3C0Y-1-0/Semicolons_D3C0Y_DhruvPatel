@@ -1,0 +1,36 @@
+path,label,kind,text,claimed_person_id,channel
+,attack,scenario,"PNB customer, your account is on hold due to Aadhaar seeding failure. Complete re-seeding now at pnb-aadhaar-link.site",,sms
+,attack,scenario,"Hello, Vodafone Idea here. Your number will be disconnected today. Press 9 to speak to our executive and share the code you receive.",,phone
+,attack,scenario,"Ekart: your COD order could not be delivered. Pay Rs 30 address correction charge here: ekart-redeliver.top",,sms
+,attack,scenario,"Gas connection will be suspended tomorrow, KYC not done. Call our office on 9830012345 urgently.",,sms
+,attack,scenario,"Congratulations, your mobile number has won Rs 25 lakh in the WhatsApp international lottery. Contact our manager and pay the tax to claim.",,whatsapp
+,attack,scenario,"Hiring now! Daily payout 3000-5000 for simple hotel review tasks. First complete a prepaid task of Rs 1000 to activate your account.",,whatsapp
+,attack,scenario,"Double your money in 15 days with our forex robot. 100% safe and assured profit. Send 20,000 to start.",,whatsapp
+,attack,scenario,"Instant Rupee loan sanctioned! Get Rs 50,000 in 5 min. Install the app: rupeeloan-fast.in/app.apk",,sms
+,attack,scenario,"Ji maine galti se aapko 2000 rupaye bhej diye, please wapas kar do. Maine request bheji hai, bas PIN daal dena.",,whatsapp
+,attack,scenario,"Hi uncle, it's Arjun. I'm stuck at the airport, my card is blocked. Please send 25,000 to my friend's UPI right now, don't tell papa.",,whatsapp
+,attack,scenario,"Police station se bol raha hoon. Aapki beti ko drugs ke saath pakda hai. Case khatam karna hai toh abhi 1 lakh bhejo.",,phone
+,attack,scenario,"This is the Enforcement Directorate. A warrant has been issued in your name for money laundering. Stay on this video call and move your funds to the RBI safe account for verification.",,phone
+,attack,scenario,"Your Microsoft 365 password expires today. Keep the same password by signing in here: m365-password-keep.online",,email
+,attack,scenario,"Ananya here. Need a favour, can't call, in a board meeting. Please process 6 lakh to the new vendor account in my next email asap.",,email
+,attack,scenario,"Your Aadhaar is linked to illegal activity. Share your Aadhaar number, date of birth and a photo of your PAN to clear your name.",,phone
+,attack,scenario,"Facebook: your page will be permanently disabled for policy violation. Verify ownership: fb-page-verify-help.live",,email
+,attack,scenario,"Aapke credit card par 12,000 ka transaction hua hai. Cancel karne ke liye card number aur expiry bata dijiye.",,phone
+,attack,scenario,"My love, the customs officer is holding my gift for you at Delhi airport. Please pay the clearance charges of Rs 45,000 so it reaches you.",,whatsapp
+,attack,scenario,"Get Rs 5,000 Diwali bonus from the government! Scan this QR and enter your UPI PIN to receive.",,whatsapp
+,attack,scenario,"Your Amazon Prime has been suspended due to a payment problem. Restore it here: amazon-prime-restore.click",,email
+,benign,scenario,"PNB: Rs 3,200 credited to your A/c XX4410 by NEFT on 30-10. Available balance updated.",,sms
+,benign,scenario,"Vi: your bill of Rs 499 is generated. Pay via the Vi app by 12 Nov. Ignore if paid.",,sms
+,benign,scenario,"Ekart: your order will arrive today. Keep Rs 649 ready for cash on delivery.",,sms
+,benign,scenario,"Hi Arjun, flight lands at 6. I'll take a cab from the airport, no need to pick me up.",,whatsapp
+,benign,scenario,"Papa, can you send 2000 for the lab manual and books? No hurry, by this week is fine.",,whatsapp
+,benign,scenario,"Your Microsoft 365 subscription renews on 1 Dec. Manage it from your account page at https://account.microsoft.com",,email
+,benign,scenario,"Ananya here. Board meeting moved to 3 pm, please print five copies of the deck.",,email
+,benign,scenario,"Thank you for your application. We'll call you for an interview next week. There is no fee at any stage.",,email
+,benign,scenario,"Your HDFC credit card ending 4410 was used for Rs 1,250 at Big Bazaar. If not you, call 1800 202 6161 from the number on your card.",,sms
+,benign,scenario,"Diwali bonus will be credited with the November salary. Happy Diwali from HR!",,email
+,benign,scenario,"Facebook: someone logged into your account from a new device in Mumbai. If this was you, you can ignore this message.",,email
+,benign,scenario,"Gas cylinder booking confirmed. Delivery within 2 days. Pay the delivery person on arrival.",,sms
+,benign,scenario,"Aaj office nahi aa paunga, tabiyat theek nahi hai. Kal milte hain.",,whatsapp
+,benign,scenario,"Your Amazon Prime membership renews on 15 Nov for Rs 1,499. Manage it in the Amazon app.",,email
+,benign,scenario,"Meeting notes from today are on the shared drive. Please review your action items before Monday.",,email

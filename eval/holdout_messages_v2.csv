@@ -1,0 +1,36 @@
+path,label,kind,text,claimed_person_id,channel
+,attack,scenario,"Axis Bank: your debit card is temporarily blocked. Unblock instantly by verifying at axis-cardcare.xyz",,sms
+,attack,scenario,"Hello sir, BSNL office se. Aapka KYC pending hai, number kal se band. Jo OTP aaya hai woh bata dijiye abhi.",,phone
+,attack,scenario,"DHL Express: Your parcel has an outstanding duty of Rs 49. Pay now to release delivery: dhl-in-pay.click",,sms
+,attack,scenario,"Tata Power notice: supply disconnection tonight due to pending dues. For help call 8100223344 immediately.",,sms
+,attack,scenario,"You won a Maruti Swift in the Flipkart Big Billion lucky draw! Pay registration charges of Rs 6,500 to receive your car.",,whatsapp
+,attack,scenario,"Work from home opportunity: Rs 500 per task, just subscribe YouTube channels. Prepaid task unlocks Rs 15,000 bonus. WhatsApp me.",,whatsapp
+,attack,scenario,"Crypto mining plan: invest 10,000 and get 1,000 daily for life, guaranteed. Limited slots, deposit today.",,whatsapp
+,attack,scenario,"Your personal loan of Rs 3 lakh is approved instantly. Download our app from the link and pay Rs 2,499 activation fee: quickcash-loan.in/get",,sms
+,attack,scenario,"Kotak alert: you have Rs 12,000 cashback pending. To receive it, enter your UPI PIN on the request we just sent.",,sms
+,attack,scenario,"Hi, it's Neha. Lost my phone, using a friend's. Can you send 7,500 on GPay to this number for a cab and hotel? Will return tomorrow, please don't tell mom.",,whatsapp
+,attack,scenario,"Sir aapke bete ka accident ho gaya hai, hospital me hai. Turant 30,000 bhejo operation ke liye, police case bhi hai.",,phone
+,attack,scenario,"Officer from NCB here. Your courier to Taiwan had MDMA. You are under digital arrest. Do not disconnect the video call and transfer Rs 2 lakh for verification.",,phone
+,attack,scenario,"IT team: your mailbox is full and will be deleted today. Log in here to keep your mail: acme-mailbox-upgrade.online/login",,email
+,attack,scenario,"Rahul, this is Rajesh (CFO). Need you to quickly pay the attached invoice of 8.4 lakh to our new supplier account today. I'm travelling, email only.",,email
+,attack,scenario,"Kindly send your bank details, Aadhaar and a cancelled cheque photo to release your PF claim. Fees of Rs 1,200 to be paid first.",,whatsapp
+,attack,scenario,"Hey! Your Instagram account will be deleted for copyright violation. Appeal within 24 hours: instagram-appeal-help.live",,email
+,attack,scenario,"Main bank manager bol raha hoon, aapka card band hone wala hai. Card ke peeche wala CVV number bata dijiye.",,phone
+,attack,scenario,"I'm Captain James, US Army in Syria. I want to send you my savings box worth $500,000. Pay the diplomat delivery fee of Rs 80,000.",,whatsapp
+,attack,scenario,"Scan QR to receive Rs 10,000 government scholarship. Last date today.",,whatsapp
+,attack,scenario,"Your Netflix subscription failed. Update your card details within 24 hours: netflix-billing-update.site",,email
+,benign,scenario,"Your Axis Bank credit card statement for October is ready. Total due Rs 8,430, due on 20 Nov. Pay via the Axis Mobile app.",,sms
+,benign,scenario,"Dear customer, the OTP for your Tata Power bill payment is 668201. Do not share this OTP with anyone.",,sms
+,benign,scenario,"DHL: your parcel 6612 will be delivered tomorrow between 10 am and 2 pm. No action required.",,sms
+,benign,scenario,"Neha here, reached Pune safely. Will call you after the meeting.",,whatsapp
+,benign,scenario,"Rahul, please book the conference room for Thursday's client meeting and send the invite to the team.",,email
+,benign,scenario,"Your PF claim has been settled. Rs 42,300 credited to your bank account ending 2210.",,sms
+,benign,scenario,"Reminder: team offsite registration closes Friday. Fill the form on the HR portal.",,email
+,benign,scenario,"Beta, dawai le li? Doctor ne bola tha roz subah lena hai. Shaam ko phone karna.",,whatsapp
+,benign,scenario,"Thanks for the payment of Rs 6,500 for the workshop. Your seat is confirmed. See you on Saturday.",,email
+,benign,scenario,"Your Netflix membership has been renewed. Rs 649 charged to your card on file.",,email
+,benign,scenario,"The vendor invoice INV-3381 for Rs 1,20,000 is pending your approval in the ERP as usual.",,email
+,benign,scenario,"Yaar kal ka plan cancel, barish bahut hai. Sunday ko chalte hain.",,whatsapp
+,benign,scenario,"Your scholarship application has been received. Results will be published on the official portal in December.",,email
+,benign,scenario,"IT notice: we will upgrade the mail server on Sunday night. You don't need to do anything.",,email
+,benign,scenario,"Your Instagram login from a new device was confirmed. If this was you, no action is needed.",,email
