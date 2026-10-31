@@ -1,4 +1,4 @@
-﻿import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import Verdict from "../components/Verdict.jsx";
 import { api, form } from "../lib/api.js";
@@ -92,10 +92,10 @@ export default function Check() {
           </label>
         </div>
         <label className="block"><span className="font-semibold">From (address or number)</span>
-          <input value={v.sender} onChange={set("sender")} className={`${field} mt-1`} placeholder="+91 98â€¦ or name@company.com" />
+          <input value={v.sender} onChange={set("sender")} className={`${field} mt-1`} placeholder="+91 98… or name@company.com" />
         </label>
         <button disabled={busy} className="w-full bg-night text-white font-bold pl-6 pr-2 py-2 rounded-full disabled:opacity-60 hover:bg-night-2 flex items-center justify-between text-lg">
-          {busy ? "Checkingâ€¦" : "Check before I act"}<span className="orb size-10 bg-white text-night"><Icon name="arrow" /></span>
+          {busy ? "Checking…" : "Check before I act"}<span className="orb size-10 bg-white text-night"><Icon name="arrow" /></span>
         </button>
         {busy && file && <p className="text-sm text-ink-soft">The first media check loads the models; it can take a minute.</p>}
         {error && <p className="text-sm text-high" role="alert">{error}</p>}
@@ -105,7 +105,7 @@ export default function Check() {
         <AnimatePresence mode="wait">
           {busy ? (
             <motion.div key="busy" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pt-8">
-              <p className="text-4xl font-bold tracking-tight">Checking voice, face, words and requestâ€¦</p>
+              <p className="text-4xl font-bold tracking-tight">Checking voice, face, words and request…</p>
               <div className="mt-6 h-2.5 heat-scale rounded-full overflow-hidden opacity-80"><motion.div className="h-full bg-white/80 w-1/4 rounded-full" animate={{ x: ["-100%", "300%"] }} transition={{ repeat: Infinity, duration: 1.4, ease: "easeInOut" }} /></div>
             </motion.div>
           ) : result ? (

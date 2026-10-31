@@ -1,8 +1,8 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { api, form } from "../lib/api.js";
 
 const field = "w-full bg-white/80 border border-white rounded-xl px-4 py-2.5 mt-1 focus:border-night/40 outline-none";
-const Tick = ({ on, label }) => <span className={`rounded-full px-3 py-1 text-xs font-bold ${on ? "bg-low text-white" : "bg-white/70 text-ink-soft"}`}>{on ? "âœ“" : "â€“"} {label}</span>;
+const Tick = ({ on, label }) => <span className={`rounded-full px-3 py-1 text-xs font-bold ${on ? "bg-low text-white" : "bg-white/70 text-ink-soft"}`}>{on ? "✓" : "–"} {label}</span>;
 
 export default function People() {
   const [people, setPeople] = useState([]);
@@ -35,7 +35,7 @@ export default function People() {
             <li key={p.id} className="glass rounded-[2rem] p-5 sm:p-6 grid sm:grid-cols-[16rem_1fr] gap-x-8 gap-y-3 items-center">
               <div className="flex items-center gap-4"><span className="orb size-14 bg-night text-white text-lg font-bold shrink-0">{p.name.split(" ").map((w) => w[0]).join("").slice(0, 2)}</span><div><p className="text-xl font-bold">{p.name}</p><p className="text-ink-soft">{p.role}</p></div></div>
               <div className="text-sm space-y-1.5">
-                <p>Uses {p.channels?.join(", ") || "no channels set"}, usually {p.work_start}:00 to {p.work_end}:00. Approves up to â‚¹{Number(p.approval_limit || 0).toLocaleString("en-IN")}.</p>
+                <p>Uses {p.channels?.join(", ") || "no channels set"}, usually {p.work_start}:00 to {p.work_end}:00. Approves up to ₹{Number(p.approval_limit || 0).toLocaleString("en-IN")}.</p>
                 <p className="flex flex-wrap gap-2"><Tick on={p.voice_enrolled} label="voiceprint" /><Tick on={p.face_enrolled} label="face" /><Tick on={!!p.telegram_chat_id} label="Telegram for verification" /></p>
               </div>
             </li>
@@ -54,16 +54,16 @@ export default function People() {
         </label>
         {edit && <input type="hidden" name="id" value={edit.id} />}
         {input("name", "Name", { required: true, defaultValue: edit?.name })}
-        <div className="grid grid-cols-2 gap-3">{input("role", "Role", { placeholder: "CFO", defaultValue: edit?.role })}{input("approval_limit", "Approval limit (â‚¹)", { type: "number", min: 0, defaultValue: edit?.approval_limit })}</div>
+        <div className="grid grid-cols-2 gap-3">{input("role", "Role", { placeholder: "CFO", defaultValue: edit?.role })}{input("approval_limit", "Approval limit (₹)", { type: "number", min: 0, defaultValue: edit?.approval_limit })}</div>
         {input("email", "Work email", { type: "email", defaultValue: edit?.email })}
         {input("phone", "Registered phone", { defaultValue: edit?.phone })}
         {input("telegram_chat_id", "Telegram chat id", { placeholder: "They send /start to the bot to get it", defaultValue: edit?.telegram_chat_id })}
         {input("channels", "Channels they use for work", { defaultValue: edit?.channels?.join(",") ?? "email,teams" })}
         {input("usual_requests", "Requests they normally make", { defaultValue: edit?.usual_requests?.join(",") ?? "information" })}
         <div className="grid grid-cols-2 gap-3">{input("work_start", "Day starts", { type: "number", defaultValue: edit?.work_start ?? 9 })}{input("work_end", "Day ends", { type: "number", defaultValue: edit?.work_end ?? 19 })}</div>
-        <label className="block text-sm font-semibold">Voice sample, 20â€“60 s{edit?.voice_enrolled && " (leave empty to keep the saved one)"}<input name="voice" type="file" accept="audio/*" className="block mt-1 font-normal" /></label>
+        <label className="block text-sm font-semibold">Voice sample, 20–60 s{edit?.voice_enrolled && " (leave empty to keep the saved one)"}<input name="voice" type="file" accept="audio/*" className="block mt-1 font-normal" /></label>
         <label className="block text-sm font-semibold">Face photo{edit?.face_enrolled && " (leave empty to keep the saved one)"}<input name="photo" type="file" accept="image/*" className="block mt-1 font-normal" /></label>
-        <button disabled={busy} className="w-full bg-night text-white font-bold py-3.5 rounded-full disabled:opacity-60">{busy ? "Savingâ€¦" : edit ? "Save changes" : "Enrol"}</button>
+        <button disabled={busy} className="w-full bg-night text-white font-bold py-3.5 rounded-full disabled:opacity-60">{busy ? "Saving…" : edit ? "Save changes" : "Enrol"}</button>
         {msg && <p className="text-sm" aria-live="polite">{msg}</p>}
       </form>
     </div>

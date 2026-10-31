@@ -33,6 +33,14 @@ export function CodeWordCheck({ person, compact = false }) {
   const [busy, setBusy] = useState(false);
   useEffect(() => { setRes(null); setSaid(""); }, [person?.id]);
   if (!person) return null;
+  const first = person.name.split(" ")[0];
+  if (!(person.telegram ?? person.telegram_chat_id)) return (
+    <div className={`rounded-[1.5rem] ${compact ? "glass" : "bg-white/80 border border-white"} p-5`}>
+      <p className="font-bold text-lg">{first} has no code word yet</p>
+      <p className="mt-1 text-sm text-ink-soft">Code words come from the TrustCheck Telegram bot, and {first} hasn't linked Telegram.
+        {" "}{first} sends <b>/start</b> to the bot, then you add the chat id it replies with in <a href="#/app/people" className="underline font-semibold text-ink">Trust Graph</a>. Until then, call back on their registered number.</p>
+    </div>
+  );
   const check = async (e) => {
     e.preventDefault();
     if (!said.trim()) return;
@@ -43,8 +51,8 @@ export function CodeWordCheck({ person, compact = false }) {
   };
   return (
     <form onSubmit={check} className={`rounded-[1.5rem] ${compact ? "glass" : "bg-white/80 border border-white"} p-5 space-y-3`}>
-      <p className="font-bold text-lg">Ask for {person.name.split(" ")[0]}'s code word</p>
-      <p className="text-sm text-ink-soft">The real {person.name.split(" ")[0]} gets two words from the TrustCheck bot that change every 30 seconds. A cloned voice can't know them. Never say them first.</p>
+      <p className="font-bold text-lg">Ask for {first}'s code word</p>
+      <p className="text-sm text-ink-soft">The real {first} sends /code to the TrustCheck bot and gets two words that change every 30 seconds. A cloned voice can't know them. Never say them first.</p>
       <div className="flex flex-wrap gap-2">
         <input value={said} onChange={(e) => { setSaid(e.target.value); setRes(null); }} placeholder="What did they say? e.g. mango river"
           className="flex-1 min-w-48 bg-white border border-rule rounded-xl px-4 py-2.5 outline-none focus:border-night/40" />

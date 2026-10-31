@@ -103,7 +103,8 @@ def run_analysis(media_path=None, text="", eml_bytes=None, claimed_id=None, chan
 
     result = fusion.fuse(signals, facts.get("action", "none"), facts)
     result |= {"summary": "", "facts": facts, "channel": channel, "sender": sender, "errors": errors,
-               "claimed_person": {"id": person["id"], "name": person["name"], "role": person.get("role")} if person else None,
+               "claimed_person": {"id": person["id"], "name": person["name"], "role": person.get("role"),
+                                  "telegram": bool(person.get("telegram_chat_id"))} if person else None,
                "message": info, "identifiers": identifiers, **extra}
     # spec 7: even a LOW verdict badges media that looks synthetic (weak "no provenance" metadata doesn't count)
     result["synthetic_media"] = any((s["score"] or 0) >= (0.9 if s["signal"] == "image_synthetic" else 0.5)
