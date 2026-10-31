@@ -29,14 +29,15 @@ All of these were run through the real pipeline before being listed here.
 | 19 | Pay-a-fee-to-receive scam | You have won a Maruti Swift in the lucky draw! Pay registration charges of Rs 6,500 to receive your car. |
 | 20 | Impersonation money ask (boss, friend, relative) | Priya, Rajesh here (CFO). In a board meeting, can't call. Urgent and confidential: transfer Rs 45 lakh to our new vendor account now. |
 | 21 | Digital arrest / fake police | Main CBI officer bol raha hoon. Aapke naam pe money laundering case hai. Video call pe raho, disconnect mat karna. Turant 2 lakh UPI karo. |
+| 22 | Inheritance / donation / 'you've been chosen' scam | prince of wales has decided donate it part of the wealth, u have been chosen as the lucky one for this apportunity and for this transfer as the account is in london you need to send 1 lakh inr to me to open a base account in london so plz do it |
 
 ## Genuine look-alikes (must stay LOW)
 
 | # | What | Message to paste |
 | --- | --- | --- |
-| 22 | bank OTP notice | Your OTP for login to HDFC NetBanking is 482913. Valid for 3 minutes. Do not share this OTP with anyone. |
-| 23 | delivery update | Your Flipkart order is out for delivery today. Track it at https://www.flipkart.com/orders. No payment is due. |
-| 24 | family message | Mom, I reached the hostel safely. Will call you after dinner. |
+| 23 | bank OTP notice | Your OTP for login to HDFC NetBanking is 482913. Valid for 3 minutes. Do not share this OTP with anyone. |
+| 24 | delivery update | Your Flipkart order is out for delivery today. Track it at https://www.flipkart.com/orders. No payment is due. |
+| 25 | family message | Mom, I reached the hostel safely. Will call you after dinner. |
 
 ## Scams that aren't plain text
 

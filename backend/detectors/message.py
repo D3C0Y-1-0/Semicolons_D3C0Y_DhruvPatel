@@ -132,6 +132,13 @@ SCAM_TYPES = {  # key: (label, topic, hook or None, what to do)
                 r"\b(tell|share|send|give|read|forward|confirm|provide|bata\w*|bhej\w*)\b.{0,40}\b(otp|cvv|upi pin|atm pin|pin|password|card number|(verification |security |\d[- ]?digit )?code (you|that|which) (receive|got|get))\b"
                 r"|\b(otp|cvv|pin|card number)\b.{0,30}\b(bata\w*|bhej\w*|share karo|de do|dijiye)\b",
                 None, "Never tell anyone an OTP, PIN or CVV. No bank, telecom or police officer will ever ask for one."),
+    "windfall": ("Inheritance / donation / 'you've been chosen' scam",
+                 r"\b(chosen|selected|picked)\b.{0,40}\b(lucky|beneficiary|winner|fund|prize|reward|donation|grant|inheritance)\b|\blucky (one|person|customer|beneficiary)\b"
+                 r"|\binheritance\b|\bunclaimed (fund|money|amount|deposit)s?\b|\bnext of kin\b|\bdonat\w*\b.{0,40}\b(wealth|fortune|estate|fund|money)\b"
+                 r"|\bpart of (his|her|the|my) (wealth|fortune|estate)\b|\b(prince|princess|royal family|barrister|diplomat)\b.{0,80}\b(donat\w*|fund|wealth|transfer|beneficiary)\b"
+                 r"|\bcompensation fund\b|\bgrant money\b",
+                 PAY_CUE + r"|\bopen (an |a )?(\w+ )?account\b|\blakh\b|\binr\b|\bdollars?\b",
+                 "Nobody gives away a fortune to a stranger. Any request to pay first, to 'open an account' or 'release the funds', is the scam."),
     "advance_fee": ("Pay-a-fee-to-receive scam",
                     r"\b(processing|registration|clearance|activation|delivery|release|gst|customs|insurance|verification|unlock|diplomat\w*|duty|correction|redelivery)\s+(\w+\s+)?(fee|fees|charges?|amount)\b",
                     r"\b(receive|claim|get|prize|won|winner|loan|release|refund|cashback|reward|unlock|car|job|parcel|gift|money|send you|savings|box|consignment|deliver\w*|order|address)\b",
@@ -495,9 +502,12 @@ def analyze(text="", eml_bytes=None, approval_limit=None):
     if digital_arrest:
         types.insert(0, {"type": "digital_arrest", "label": "Digital arrest / fake police",
                          "advice": "Real police, CBI or courts never arrest anyone over a video call. Hang up and call 1930."})
-    if (sum(t in found for t in ("authority", "urgency", "secrecy", "new_beneficiary", "channel_switch")) >= 2 and "payment_request" in found) or gift:
+    # the catch-all for impersonated money asks: only when it claims authority, or nothing more specific matched
+    # (otherwise a job or family scam would be labelled "boss impersonation" first)
+    if ((sum(t in found for t in ("authority", "urgency", "secrecy", "new_beneficiary", "channel_switch")) >= 2 and "payment_request" in found) or gift) \
+            and ("authority" in found or gift or not types):
         types.insert(0, {"type": "ceo_fraud", "label": "Impersonation money ask (boss, friend, relative)", "advice": "Call the person back on a number you already know before moving any money."})
-    paying = bool(kinds & {"investment", "lottery_prize", "sextortion", "advance_fee"}) or ("payment_request" in found and not (NOTICE_RE.search(text) and not ASK_RE.search(text))) or extras.get("action") == "payment"
+    paying = bool(kinds & {"investment", "lottery_prize", "sextortion", "advance_fee", "windfall"}) or ("payment_request" in found and not (NOTICE_RE.search(text) and not ASK_RE.search(text))) or extras.get("action") == "payment"
     asks_link = facts.get("has_link") and (re.search(LINK_CUE, text, re.I) or types or found)
     if kinds & {"malware_apk", "remote_access"} or extras.get("action") == "install_app":
         action = "install_app"
@@ -506,7 +516,7 @@ def analyze(text="", eml_bytes=None, approval_limit=None):
         action = "credentials"
     elif paying or "refund_upi" in kinds:
         over = amount is not None and approval_limit is not None and amount > approval_limit
-        action = "payment_high" if (over or new_ben or gift or kinds & {"investment", "job_task", "lottery_prize", "refund_upi"}) else "payment"
+        action = "payment_high" if (over or new_ben or gift or kinds & {"investment", "job_task", "lottery_prize", "refund_upi", "windfall"}) else "payment"
     elif "personal_data" in kinds or extras.get("action") == "personal_info":
         action = "personal_info"
     elif asks_link or extras.get("action") == "click_link":
@@ -525,6 +535,9 @@ def analyze(text="", eml_bytes=None, approval_limit=None):
     facts |= {"action": action, "amount_inr": amount, "new_beneficiary": bool(new_ben),
               "channel_switch": "channel_switch" in found, "digital_arrest": digital_arrest,
               "scam_pattern": bool(types),
+              # safety net for scams no pattern knows yet: scam-like wording that asks for money or an OTP is never LOW
+              "scam_wording_ask": (p or 0) >= 0.8 and action in ("payment", "payment_high", "credentials", "install_app")
+              and bool(set(found) - {"payment_request"}),  # plus a pressure tactic: a plain "pay the rent" stays LOW
               # a pattern backed by scam wording, a risky link or two manipulation tactics is no longer a maybe
               "scam_strong": bool(types) and ((p or 0) >= 0.6 or len(found) >= 2 or any(
                   x["signal"] == "link_risk" and x["score"] >= 0.6 for x in signals))}
@@ -576,6 +589,7 @@ def demo():
         ("Hi mom this is my new number, phone broke. Need Rs 20,000 urgently for a bill, can you send?", "family_emergency", "payment"),
         ("Your traffic e-challan of Rs 500 is pending. Pay now at echallan-parivahan.cc to avoid court.", "challan_refund", "payment"),
         ("For the job offer please send your Aadhaar card, PAN card and a selfie on this number.", "personal_data", "personal_info"),
+        ("prince of wales has decided donate it part of the wealth, u have been chosen as the lucky one, send 1 lakh inr to me to open a base account in london", "windfall", "payment_high"),
     ]
     for text, kind, act in scams:
         _, f, info = analyze(text, approval_limit=0 if act == "payment_high" else None)
@@ -585,7 +599,8 @@ def demo():
                "Your Flipkart order will be delivered today between 2 pm and 6 pm. Track at https://www.flipkart.com/orders",
                "Reminder: your electricity bill of Rs 1,240 is due on 15 Nov. Pay via the official app. Ignore if already paid.",
                "My son had a small accident at school, I'll be working from home today.",
-               "Slides for tomorrow are at https://docs.google.com/presentation/d/abc"):
+               "Slides for tomorrow are at https://docs.google.com/presentation/d/abc",
+               "You are selected for the second interview round on Monday at 11 am. No fee is charged at any stage."):
         _, f, info = analyze(ok)
         assert not info["scam_types"] and not f.get("dangerous_link"), (ok, info["scam_types"], f)
     s, f, _ = analyze("Update KYC: http://sbi-kyc-update.xyz/login")

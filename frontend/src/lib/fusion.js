@@ -36,6 +36,7 @@ export function fuse(signals, action = "none", facts = {}) {
   if (facts.digital_arrest) floor("'Digital arrest' pattern", high);
   if (facts.scam_strong) floor("Matches a known scam pattern and the wording, link or tactics back it up", high);
   else if (facts.scam_pattern) floor("Matches a known scam pattern", 30);
+  else if (facts.scam_wording_ask) floor("Scam-like wording asking for money or a code: verify before acting", 30);
   risk = Math.round(risk * 10) / 10;
   rows.sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution));
   return { risk, band: bandOf(risk), threat: t, impact: IMPACT[action], action, signals: rows, rules_fired: rules, prior_logodds: Math.round(BIAS * 1000) / 1000 };
@@ -58,5 +59,6 @@ if (typeof process !== "undefined" && process.argv?.[1]?.endsWith("fusion.js")) 
   ok(fuse([sig("link_risk", 0.95)], "click_link", { dangerous_link: true }).band === "HIGH", "link");
   ok(fuse([sig("scam_pattern", 0.85)], "none", { scam_pattern: true }).risk === 30, "pattern");
   ok(fuse([sig("scam_pattern", 0.85)], "call_back", { scam_pattern: true, scam_strong: true }).risk === 60, "strong pattern");
+  ok(fuse([sig("message_classifier", 0.82)], "payment", { scam_wording_ask: true }).band === "MEDIUM", "wording safety net");
   console.log("fusion.js ok: A=99.9 HIGH, B=9.8 LOW, C=17.3 -> HIGH by rule");
 }

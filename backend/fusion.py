@@ -82,6 +82,8 @@ def rules(facts):
         fired.append(("Matches a known scam pattern and the wording, link or tactics back it up" + at_stake, high))
     elif facts.get("scam_pattern"):
         fired.append(("Matches a known scam pattern", FLOOR["MEDIUM"]))
+    elif facts.get("scam_wording_ask"):
+        fired.append(("Scam-like wording asking for money or a code: verify before acting", FLOOR["MEDIUM"]))
     if facts.get("digital_arrest"):
         fired.append(("'Digital arrest' pattern: claims to be police/CBI/court and demands payment or staying on call" + at_stake, high))
     if facts.get("audio_both_high"):
@@ -147,6 +149,7 @@ def demo():
     assert fuse([sig("link_risk", .95)], "click_link", {"dangerous_link": True})["band"] == "HIGH"
     assert fuse([sig("scam_pattern", .85)], "none", {"scam_pattern": True})["risk"] == 30
     assert fuse([sig("scam_pattern", .85)], "call_back", {"scam_pattern": True, "scam_strong": True})["risk"] == 60
+    assert fuse([sig("message_classifier", .82)], "payment", {"scam_wording_ask": True})["band"] == "MEDIUM"
     # unavailable detector is ignored, not penalised
     assert fuse([{"signal": "audio_spoof", "score": None}])["risk"] == fuse([])["risk"]
     print("fusion ok: A=99.9 HIGH, B=9.8 LOW, C=17.3 -> HIGH by rule")
