@@ -57,6 +57,10 @@ The first audio, video or image check downloads the models: pellav2 (~1.3 GB), G
 
 ## 3. Run it
 
+**Demo day, one command** (from the project folder): `.\start-demo.ps1 -Tunnel` starts the backend, frontend and an IPv4 Cloudflare tunnel, writes the tunnel address into `backend/.env`, waits for the models and opens the console. `python backend/reset_demo.py` clears cases and the blocklist but keeps the Trust Graph. Run-sheet: `docs/DEMO.md`.
+
+Or by hand:
+
 ```powershell
 # terminal 1
 cd backend

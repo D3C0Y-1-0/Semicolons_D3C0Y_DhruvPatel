@@ -1,12 +1,13 @@
 """SQLite store: Org Trust Graph (people) and cases. Embeddings only, never raw media."""
 import json
+import os
 import secrets
 import sqlite3
 import time
 import uuid
 from pathlib import Path
 
-DB_PATH = Path(__file__).parent / "trustcheck.db"
+DB_PATH = Path(os.getenv("TRUSTCHECK_DB") or Path(__file__).parent / "trustcheck.db")  # TRUSTCHECK_DB: a separate file for tests and screenshots
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS people (
