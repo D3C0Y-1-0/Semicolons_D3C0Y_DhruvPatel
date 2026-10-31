@@ -33,7 +33,7 @@ def conn():
     c = sqlite3.connect(DB_PATH)
     c.row_factory = sqlite3.Row
     c.executescript(SCHEMA)
-    for col in ("code_secret", "family_emails"):  # added after the first release: Human 2FA secret, family alert emails (JSON)
+    for col in ("code_secret",):  # added after the first release: Human 2FA secret
         try:
             c.execute(f"ALTER TABLE people ADD COLUMN {col} TEXT")
         except sqlite3.OperationalError:
@@ -45,7 +45,7 @@ def _person(row):
     if not row:
         return None
     p = dict(row)
-    for k in ("channels", "usual_requests", "voice_emb", "face_emb", "family_emails"):
+    for k in ("channels", "usual_requests", "voice_emb", "face_emb"):
         p[k] = json.loads(p[k]) if p.get(k) else None
     return p
 
@@ -55,12 +55,12 @@ def add_person(**p):
     pid = p.get("id") or uuid.uuid4().hex[:8]
     old = get_person(pid) or {}
     p = {**old, **{k: v for k, v in p.items() if v is not None}}
-    for k in ("channels", "usual_requests", "voice_emb", "face_emb", "family_emails"):
+    for k in ("channels", "usual_requests", "voice_emb", "face_emb"):
         if p.get(k) is not None:
             p[k] = json.dumps(p[k])
     p.setdefault("code_secret", secrets.token_hex(16))
     cols = ["id", "name", "role", "email", "phone", "telegram_chat_id", "channels", "work_start",
-            "work_end", "approval_limit", "usual_requests", "voice_emb", "face_emb", "code_secret", "family_emails"]
+            "work_end", "approval_limit", "usual_requests", "voice_emb", "face_emb", "code_secret"]
     vals = [pid] + [p.get(k) for k in cols[1:]]
     with conn() as c:
         c.execute(f"INSERT OR REPLACE INTO people ({','.join(cols)}) VALUES ({','.join('?' * len(cols))})", vals)

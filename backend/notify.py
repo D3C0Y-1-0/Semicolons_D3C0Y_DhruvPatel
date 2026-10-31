@@ -20,7 +20,6 @@ import html
 import os
 import smtplib
 import socket
-import threading
 import time
 from email.message import EmailMessage
 from urllib.parse import quote
@@ -111,65 +110,7 @@ def record_answer(cid, ans, via):
     if ans == "no":
         import mules
         mules.harvest_case(case, "confirmed attack")
-        person = db.get_person(case.get("claimed_person_id") or "")
-        if person and person.get("family_emails") and not case["result"].get("family_alert"):
-            family_alert(case, person)  # a confirmed impersonation: the family hears it from us before the scammer calls them
     return case
-
-
-ASK = {"payment": "a payment", "payment_high": "a payment", "credentials": "an OTP or password", "install_app": "an app install",
-       "click_link": "to open a link", "personal_info": "ID documents", "call_back": "a call back"}
-
-
-def family_alert(case, person, no_reply=False):
-    """Email the person's family contacts: someone is using their name, and scammers call family next."""
-    to = person.get("family_emails") or []
-    if not to:
-        return {"sent": [], "errors": [f"{person['name']} has no family emails in the Trust Graph."]}
-    if not smtp_ready():
-        return {"sent": [], "errors": ["Email isn't set up: add SMTP_USER and SMTP_PASS to backend/.env."]}
-    r, first = case["result"], person["name"].split()[0]
-    amount = (r.get("facts") or {}).get("amount_inr")
-    kind = (r.get("scam_types") or [{}])[0].get("label")
-    confirmed = case["status"] == "confirmed_attack"
-    body = (f"Hello,\n\nYou are listed as a family contact for {person['name']} in TrustCheck, the scam check used at work.\n\n"
-            f"Someone just used {first}'s name to ask for {ASK.get(r.get('action'), 'something')}"
-            + (f" of {inr(amount)}" if amount else "") + f" via {r.get('channel') or 'an unknown channel'}. "
-            + (f"{first} confirmed it was NOT them." if confirmed
-               else f"{first} did not confirm it within a minute of being asked, so TrustCheck is treating it as a SCAM." if no_reply
-               else f"TrustCheck rated it {r.get('band')} risk" + (f" ({kind})." if kind else "."))
-            + f"\n\nScammers often contact family next with the same story or a cloned voice: \"{first} had an accident\", "
-            f"\"{first} is arrested\", \"send money urgently\". If anyone contacts you in {first}'s name asking for money, an OTP "
-            f"or to stay on a call: hang up, then call {first} on the number you already have. Don't pay and don't share codes.\n\n"
-            "Report scams: call 1930 or visit cybercrime.gov.in.\n\nTrustCheck")
-    sent, errors = [], []
-    for addr in to:
-        try:
-            send_email(addr, f"TrustCheck alert: someone is pretending to be {person['name']}", body)
-            sent.append(addr)
-        except Exception as e:
-            errors.append(f"{addr}: {e}")
-    if sent:
-        db.update_case(case["id"], result_patch={"family_alert": {"to": sent, "at": time.time()}})
-    return {"sent": sent, "errors": errors}
-
-
-FAMILY_AFTER = int(os.getenv("FAMILY_ALERT_AFTER", "60"))  # seconds to wait for the real person's YES / NO
-
-
-def alert_if_silent(cid, after=None):
-    """Asked the real person and heard nothing back in time: treat it as a scam and warn the family.
-    ponytail: in-process timer, lost if the backend restarts mid-wait; a job queue survives restarts."""
-    def check():
-        case = db.get_case(cid)
-        person = db.get_person((case or {}).get("claimed_person_id") or "")
-        if case and person and case["status"] == "verifying" and not case["result"].get("family_alert"):
-            out = family_alert(case, person, no_reply=True)
-            db.update_case(cid, result_patch={"no_reply_alert": out})
-    t = threading.Timer(FAMILY_AFTER if after is None else after, check)
-    t.daemon = True
-    t.start()
-    return t
 
 
 def pending_for(pid):
@@ -250,7 +191,6 @@ tick();setInterval(tick,1000);
 
 def demo():
     p = {"id": "x", "name": "Test Person", "email": "t@example.com", "phone": "9876543210"}
-    assert family_alert({"id": "x", "result": {}, "status": "open"}, p)["errors"][0].endswith("no family emails in the Trust Graph.")
     out = deliver(p, "s", "hello there")
     assert list(out["links"]) == ["email"] and out["links"]["email"].startswith("mailto:t@example.com")
     print("notify ok:", public_url())

@@ -37,7 +37,6 @@ export function SendLinks({ delivery, who, qr, qrLabel }) {
         {sent.length > 0 && <p className="font-semibold text-low">Sent to {who} by {sent.join(" and ")}.</p>}
         {!sent.length && <p className="text-sm text-ink-soft">{links.email ? `Email it to ${who}'s registered address, or let ${who} scan the code:` : `${who} has no email in the Trust Graph. Let ${who} scan the code:`}</p>}
         {links.email && !sent.includes("email") && <a href={links.email} className={btn}>Email</a>}
-        {delivery.family_after && <p className="text-sm font-semibold text-high">No answer from {who} within {delivery.family_after} s and the family gets an email that this is a scam.</p>}
         {errors.map((e) => <p key={e} className="text-xs text-high">{e}</p>)}
       </div>
       {qr && <figure className="text-center"><img src={`${API}/qr?data=${encodeURIComponent(qr)}`} alt={qrLabel} className="size-36 rounded-xl" />

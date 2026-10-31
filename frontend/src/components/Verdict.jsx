@@ -40,18 +40,10 @@ export function Stamp({ band, risk, size = "text-7xl", className = "" }) {
   );
 }
 
-// Scammers call the family next, in the same name: email the family contacts from the Trust Graph. Plus read-aloud.
-function Share({ r, caseId }) {
+// Read the verdict and what to do out loud, for anyone who'd rather listen.
+function Share({ r }) {
   const [speaking, setSpeaking] = useState(false);
-  const [family, setFamily] = useState(r.family_alert ? `Family alerted (${r.family_alert.to.length})` : "");
-  const [err, setErr] = useState("");
   if (r.band === "LOW") return null;
-  const first = r.claimed_person?.name.split(" ")[0];
-  const alertFamily = async () => {
-    setErr("");
-    try { const d = await api(`/cases/${caseId}/family`, { method: "POST" }); setFamily(`Family alerted (${d.sent.length})`); }
-    catch (e) { setErr(e.message); }
-  };
   const say = () => {
     const s = window.speechSynthesis;
     if (!s) return;
@@ -60,15 +52,7 @@ function Share({ r, caseId }) {
     u.onend = () => setSpeaking(false);
     s.speak(u); setSpeaking(true);
   };
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      {caseId && r.claimed_person?.family > 0 && (
-        <button type="button" onClick={alertFamily} disabled={!!family} className="bg-night text-white rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-70">
-          {family || `Email alert to ${first}'s family`}</button>)}
-      <button type="button" onClick={say} className="bg-white/80 border border-white rounded-full px-4 py-2 text-sm font-semibold">{speaking ? "Stop" : "Read it out loud"}</button>
-      {err && <p className="w-full text-sm text-high">{err}</p>}
-    </div>
-  );
+  return <button type="button" onClick={say} className="self-start bg-white/80 border border-white rounded-full px-4 py-2 text-sm font-semibold">{speaking ? "Stop" : "Read it out loud"}</button>;
 }
 
 export function Waterfall({ rows, max }) {
@@ -195,7 +179,7 @@ export default function Verdict({ result: r, caseId, initialStatus = "open" }) {
         {r.hold_until && caseId && <HoldLock until={r.hold_until} status={status} />}
         <h3 className="text-xl font-bold">What to do now</h3>
         <ul className="space-y-2">{r.recommended_actions.map((a) => <li key={a} className="flex gap-3 items-start"><span aria-hidden className={`mt-2 size-2 rounded-full shrink-0 ${r.band === "LOW" ? "bg-low" : r.band === "MEDIUM" ? "bg-medium" : "bg-high"}`} />{a}</li>)}</ul>
-        <Share r={r} caseId={caseId} />
+        <Share r={r} />
         {r.challenge && <p className="text-lg font-semibold rounded-2xl bg-night text-white px-5 py-4">On the call, try this: {r.challenge}</p>}
         {r.band !== "LOW" && r.claimed_person && (status === "open" || status === "verifying") && <CodeWordCheck person={r.claimed_person} />}
         {caseId && (

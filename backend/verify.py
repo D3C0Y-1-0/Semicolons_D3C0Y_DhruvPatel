@@ -47,8 +47,11 @@ def _on_callback(cq):
     if case and case["result"].get("verification", {}).get("answer") != ans:
         ans = case["result"]["verification"]["answer"]
     call("answerCallbackQuery", callback_query_id=cq["id"], text="Recorded. Thank you.")
-    call("editMessageText", chat_id=cq["message"]["chat"]["id"], message_id=cq["message"]["message_id"],
-         text="Recorded: " + ("you confirmed the request." if ans == "yes" else "NOT you. The payment is on hold and security has been alerted."))
+    try:  # a second tap asks Telegram to "edit" the message into the text it already has: a harmless 400
+        call("editMessageText", chat_id=cq["message"]["chat"]["id"], message_id=cq["message"]["message_id"],
+             text="Recorded: " + ("you confirmed the request." if ans == "yes" else "NOT you. The payment is on hold and security has been alerted."))
+    except Exception:
+        pass
 
 
 def _download(file_id):
