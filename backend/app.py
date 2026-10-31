@@ -258,7 +258,7 @@ def case(cid: str):
 
 @app.post("/verify/{cid}")
 def send_verify(cid: str):
-    """Ask the real person, out of band: email goes out by itself, WhatsApp / SMS come back as one-tap links."""
+    """Ask the real person, out of band: email goes out by itself, SMS comes back as a one-tap link, plus a QR."""
     c = db.get_case(cid)
     if not c:
         raise HTTPException(404)
@@ -298,7 +298,7 @@ def _case_person(cid):
 
 @app.get("/v/{cid}", response_class=HTMLResponse)
 def verify_page(cid: str, t: str = ""):
-    """The page the real person opens from WhatsApp, SMS or email."""
+    """The page the real person opens from SMS, email or the QR code."""
     c, p = _case_person(cid)
     if not notify.signed(p["id"], "v:" + cid, t):
         raise HTTPException(403, "This link isn't valid.")
@@ -333,7 +333,7 @@ def me_code(pid: str, t: str = ""):
 
 @app.post("/people/{pid}/invite")
 def invite(pid: str):
-    """Send someone their personal code-word page once, over WhatsApp, SMS or email."""
+    """Send someone their personal code-word page once, over SMS or email, or as a QR code."""
     p = db.get_person(pid)
     if not p:
         raise HTTPException(404)

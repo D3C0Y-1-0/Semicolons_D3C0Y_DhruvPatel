@@ -43,9 +43,16 @@ export function Stamp({ band, risk, size = "text-7xl", className = "" }) {
 // Scams spread by forward, so should the warning. Plus read-aloud for anyone who'd rather listen.
 function Share({ r }) {
   const [speaking, setSpeaking] = useState(false);
+  const [shared, setShared] = useState("");
   const scam = r.scam_types?.[0];
   if (r.band === "LOW" || !scam) return null;
   const warning = `Scam alert: "${scam.label}" messages are going around. ${scam.advice} Never act on a message like this without checking. Report: 1930 / cybercrime.gov.in`;
+  const share = async () => {
+    try {
+      if (navigator.share) { await navigator.share({ title: "Scam alert", text: warning }); setShared("Shared"); }
+      else { await navigator.clipboard.writeText(warning); setShared("Copied: paste it in any chat"); }
+    } catch { /* share sheet closed */ }
+  };
   const say = () => {
     const s = window.speechSynthesis;
     if (!s) return;
@@ -56,7 +63,7 @@ function Share({ r }) {
   };
   return (
     <div className="flex flex-wrap gap-2">
-      <a href={`https://wa.me/?text=${encodeURIComponent(warning)}`} target="_blank" rel="noreferrer" className="bg-night text-white rounded-full px-4 py-2 text-sm font-semibold">Warn family on WhatsApp</a>
+      <button type="button" onClick={share} className="bg-night text-white rounded-full px-4 py-2 text-sm font-semibold">{shared || "Share warning with family"}</button>
       <button type="button" onClick={say} className="bg-white/80 border border-white rounded-full px-4 py-2 text-sm font-semibold">{speaking ? "Stop" : "Read it out loud"}</button>
     </div>
   );

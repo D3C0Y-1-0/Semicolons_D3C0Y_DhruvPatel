@@ -26,7 +26,7 @@ export function HoldLock({ until, status }) {
   );
 }
 
-// One tap to send over what everyone already has: WhatsApp, SMS, email. Email may already have gone out by itself.
+// One tap to send over what every phone has: SMS or email, plus a QR for someone in the room. Email may already have gone out by itself.
 export function SendLinks({ delivery, who, qr, qrLabel }) {
   const [copied, setCopied] = useState(false);
   if (!delivery) return null;
@@ -39,7 +39,6 @@ export function SendLinks({ delivery, who, qr, qrLabel }) {
         {sent.length > 0 && <p className="font-semibold text-low">Sent to {who} by {sent.join(" and ")}.</p>}
         <p className="text-sm text-ink-soft">{sent.length ? "Send it on another channel too:" : `Send it to ${who}'s registered number or email. The message is ready, one tap:`}</p>
         <div className="flex flex-wrap gap-2">
-          {links.whatsapp && <a href={links.whatsapp} target="_blank" rel="noreferrer" className={btn}>WhatsApp</a>}
           {links.sms && <a href={links.sms} className={btn}>SMS</a>}
           {links.email && !sent.includes("email") && <a href={links.email} className={btn}>Email</a>}
           <button type="button" onClick={copy} className={btn}>{copied ? "Copied" : "Copy message"}</button>
@@ -71,7 +70,7 @@ export function CodeWordCheck({ person, compact = false }) {
   return (
     <form onSubmit={check} className={`rounded-[1.5rem] ${compact ? "glass" : "bg-white/80 border border-white"} p-5 space-y-3`}>
       <p className="font-bold text-lg">Ask for {first}'s code word</p>
-      <p className="text-sm text-ink-soft">The real {first} opens their TrustCheck page (sent once by WhatsApp, SMS or email from <a href="#/app/people" className="underline font-semibold text-ink">Trust Graph</a>) and reads two words that change every 30 seconds. A cloned voice can't know them. Never say them first.</p>
+      <p className="text-sm text-ink-soft">The real {first} opens their TrustCheck page (sent once by SMS, email or QR from <a href="#/app/people" className="underline font-semibold text-ink">Trust Graph</a>) and reads two words that change every 30 seconds. A cloned voice can't know them. Never say them first.</p>
       <div className="flex flex-wrap gap-2">
         <input value={said} onChange={(e) => { setSaid(e.target.value); setRes(null); }} placeholder="What did they say? e.g. mango river"
           className="flex-1 min-w-48 bg-white border border-rule rounded-xl px-4 py-2.5 outline-none focus:border-night/40" />

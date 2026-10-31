@@ -1,4 +1,4 @@
-"""Out-of-band verification over whatever the real person already has: WhatsApp, SMS, email or a plain link.
+"""Out-of-band verification over what every phone already has: SMS, email, a QR code or a plain link.
 
 No app to install and no paid API. Every message carries a signed link to a small page this backend serves:
 - /v/{case}: "Did YOU send this request?" with YES / NO.
@@ -7,8 +7,10 @@ Links are signed with the person's code_secret (HMAC), so nobody can answer for 
 
 Delivery:
 - Email goes out automatically when SMTP_USER / SMTP_PASS are set (a free Gmail app password works).
-- WhatsApp and SMS open on the employee's own phone or laptop with the message pre-filled (wa.me and sms: links),
-  addressed to the person's REGISTERED number from the Trust Graph, never to the number the request came from.
+- SMS opens on the employee's phone with the message pre-filled (sms: link), addressed to the person's
+  REGISTERED number from the Trust Graph, never to the number the request came from.
+- In the room: the verdict shows the link as a QR code.
+  ponytail: no WhatsApp link on purpose; it needs WhatsApp set up on the presenting device and failed that test.
 - Telegram still works for anyone who linked it (verify.py).
 The phone has to reach this backend: on the same Wi-Fi run uvicorn with --host 0.0.0.0, or set PUBLIC_URL to a tunnel.
 """
@@ -86,7 +88,7 @@ def send_email(to, subject, body):
 
 
 def deliver(person, subject, text):
-    """Email it if SMTP is set up; always return one-tap WhatsApp / SMS / email links to send it by hand."""
+    """Email it if SMTP is set up; always return one-tap SMS / email links to send it by hand."""
     sent, errors = [], []
     if person.get("email") and smtp_ready():
         try:
@@ -95,8 +97,7 @@ def deliver(person, subject, text):
         except Exception as e:
             errors.append(f"email failed: {e}")
     phone = intl(person.get("phone"))
-    links = {"whatsapp": f"https://wa.me/{phone}?text={quote(text)}" if phone else None,
-             "sms": f"sms:+{phone}?body={quote(text)}" if phone else None,
+    links = {"sms": f"sms:+{phone}?body={quote(text)}" if phone else None,
              "email": f"mailto:{person['email']}?subject={quote(subject)}&body={quote(text)}" if person.get("email") else None}
     return {"sent": sent, "errors": errors, "links": {k: v for k, v in links.items() if v}, "text": text}
 
@@ -194,7 +195,7 @@ def demo():
     assert intl("98765 43210") == "919876543210" and intl("+91 98765 43210") == "919876543210"
     p = {"id": "x", "name": "Test Person", "email": "t@example.com", "phone": "9876543210"}
     out = deliver(p, "s", "hello there")
-    assert out["links"]["whatsapp"] == "https://wa.me/919876543210?text=hello%20there" and out["links"]["sms"].startswith("sms:+91")
+    assert out["links"]["sms"] == "sms:+919876543210?body=hello%20there" and "whatsapp" not in out["links"]
     print("notify ok:", public_url())
 
 
