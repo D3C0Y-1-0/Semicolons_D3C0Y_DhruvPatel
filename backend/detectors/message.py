@@ -9,6 +9,15 @@ import functools
 import json
 import os
 import re
+import unicodedata
+
+# invisible characters scammers slip inside words ("O​T​P") so filters miss them
+INVISIBLE = dict.fromkeys(map(ord, "​‌‍⁠﻿­᠎"), None)
+
+
+def normalize(text):
+    """Fold look-alike Unicode (𝐊𝐘𝐂, ｋｙｃ) to plain letters and drop invisible characters before any check."""
+    return unicodedata.normalize("NFKC", text or "").translate(INVISIBLE)
 from email import policy
 from urllib.parse import urlparse
 
@@ -448,6 +457,7 @@ def analyze(text="", eml_bytes=None, approval_limit=None):
         signals += s
         facts |= f
         text = "\n".join(x for x in (header["subject"], header["body"], text) if x)
+    text = normalize(text)
     if not text.strip():
         return signals, facts, {"text": "", "highlights": [], "header": header}
 

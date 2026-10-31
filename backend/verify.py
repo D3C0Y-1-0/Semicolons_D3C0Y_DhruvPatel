@@ -78,7 +78,7 @@ def _on_message(msg, analyze_fn):
         call("sendMessage", chat_id=chat, text=f"Your TrustCheck code word right now:\n\n{codeword.phrase(db.code_secret(person['id'])).upper()}\n\n"
              f"It changes in {codeword.seconds_left()} s. Say it only when a colleague asks you to prove it's really you.")
         return
-    media = msg.get("voice") or msg.get("audio") or msg.get("video_note") or msg.get("video")
+    media = msg.get("voice") or msg.get("audio") or msg.get("video_note") or msg.get("video") or (msg.get("photo") or [None])[-1]  # photo: largest size, a forwarded scam screenshot
     local = _download(media["file_id"]) if media else None
     try:
         r = analyze_fn(local, msg.get("text") or msg.get("caption") or "")

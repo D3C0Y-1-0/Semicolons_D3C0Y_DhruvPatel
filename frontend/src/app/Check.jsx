@@ -57,7 +57,7 @@ export default function Check() {
     try {
       setResult(await api("/analyze", { method: "POST", body: form({ ...v, media: file, eml }) }));
     } catch (err) {
-      setError(`Couldn't check this: ${err.message}. Is the backend running on port 8000?`);
+      setError(err instanceof TypeError ? "Can't reach the backend on port 8000. Is it running?" : err.message);
     } finally { setBusy(false); }
   }
   const onKey = (e) => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") submit(e); };

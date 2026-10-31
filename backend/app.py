@@ -30,6 +30,9 @@ from detectors import identity, message  # noqa: E402
 AUDIO_EXT = {".wav", ".mp3", ".m4a", ".ogg", ".opus", ".flac", ".aac", ".amr"}
 VIDEO_EXT = {".mp4", ".mov", ".mkv", ".avi", ".webm", ".3gp"}
 IMAGE_EXT = {".jpg", ".jpeg", ".png", ".webp", ".heic"}
+TEXT_EXT = {".txt"}  # a pasted chat export: read as the message
+MAX_TEXT = 50_000  # characters checked; a longer paste is cut, the verdict notes nothing about the rest
+MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "200"))
 LIVE_CONTEXT_S = 90  # seconds of the call the live transcript covers
 HOLD_MINUTES = int(os.getenv("HOLD_MINUTES", "30"))  # cooling-off lock on HIGH payment/credential requests
 
@@ -94,6 +97,7 @@ def run_analysis(media_path=None, text="", eml_bytes=None, claimed_id=None, chan
     signals, errors, extra = [], [], {}
     voice_emb = face_emb = None
     person = db.get_person(claimed_id) if claimed_id else None
+    text = message.normalize(text)[:MAX_TEXT]  # look-alike Unicode and hidden characters can't dodge the checks
 
     if media_path:
         ext = Path(media_path).suffix.lower()
@@ -231,6 +235,20 @@ async def analyze(text: str = Form(""), channel: str = Form(None), sender: str =
                   claimed_person_id: str = Form(None), hour: int = Form(None),
                   media: UploadFile = File(None), eml: UploadFile = File(None)):
     path = await _save(media)
+    if path:
+        ext = Path(path).suffix.lower()
+        if os.path.getsize(path) > MAX_UPLOAD_MB * 1024 * 1024:
+            os.remove(path)
+            raise HTTPException(413, f"That file is over {MAX_UPLOAD_MB} MB. Trim the recording to the part with the request.")
+        if ext in TEXT_EXT:
+            with open(path, encoding="utf-8", errors="replace") as fh:
+                text = (text + "\n" if text else "") + fh.read(MAX_TEXT)
+            os.remove(path)
+            path = None
+        elif ext not in AUDIO_EXT | VIDEO_EXT | IMAGE_EXT:
+            os.remove(path)
+            raise HTTPException(415, f"{ext or 'That'} files can't be checked. Use a voice note, video, image or screenshot "
+                                     "(.opus .mp3 .wav .mp4 .jpg .png), a .txt export, or paste the text.")
     eml_bytes = await eml.read() if eml and eml.filename else None
     if hour is None:
         hour = dt.datetime.now().hour

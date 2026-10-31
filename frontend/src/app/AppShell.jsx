@@ -59,7 +59,7 @@ export default function AppShell({ page }) {
   ];
 
   return (
-    <div className="mac wallpaper min-h-dvh text-ink">
+    <div className="mac wallpaper min-h-dvh text-ink sm:h-dvh sm:overflow-hidden">
       <header className="menubar fixed inset-x-0 top-0 z-40 h-7 flex items-center gap-4 px-4 text-ink">
         <a href="#/" aria-label="TrustCheck home" className="orb size-[18px] bg-night text-white text-[10px] font-extrabold">T</a>
         <span className="font-bold">TrustCheck</span>
@@ -70,10 +70,10 @@ export default function AppShell({ page }) {
         </span>
       </header>
 
-      <div className="pt-7 sm:pt-11 pb-28 sm:px-6 lg:px-10">
+      <div className="pt-7 sm:pt-9 pb-24 sm:px-4 lg:px-6">
         <motion.div initial={still ? false : { opacity: 0, scale: 0.965, y: 14 }} animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ type: "spring", stiffness: 260, damping: 26 }}
-          className="window mx-auto max-w-[1380px] overflow-hidden sm:h-[calc(100dvh-10.5rem)] flex flex-col max-sm:rounded-none max-sm:shadow-none">
+          className="window mx-auto max-w-[1600px] overflow-hidden sm:h-[calc(100dvh-7.9rem)] flex flex-col max-sm:rounded-none max-sm:shadow-none">
           <div className="titlebar hidden sm:flex h-12 shrink-0 items-center px-4 relative">
             <div className="group flex gap-2" aria-label="Window controls">
               <a href="#/" aria-label="Close console, back to home" className="light bg-[#ff5f57]"><span className="opacity-0 group-hover:opacity-100 text-[9px] leading-none text-black/55 font-bold">×</span></a>
