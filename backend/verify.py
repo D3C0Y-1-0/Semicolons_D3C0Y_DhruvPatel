@@ -43,7 +43,10 @@ def send_verification(case, person):
 def _on_callback(cq):
     _, cid, ans = cq["data"].split(":")
     status = "verified" if ans == "yes" else "confirmed_attack"
-    db.update_case(cid, status=status, result_patch={"verification": {"answer": ans, "at": time.time()}})
+    case = db.update_case(cid, status=status, result_patch={"verification": {"answer": ans, "at": time.time()}})
+    if case and ans == "no":
+        import mules  # late import: mules -> db only, but keeps the bot module light
+        mules.harvest_case(case, "confirmed attack")
     call("answerCallbackQuery", callback_query_id=cq["id"], text="Recorded. Thank you.")
     call("editMessageText", chat_id=cq["message"]["chat"]["id"], message_id=cq["message"]["message_id"],
          text="Recorded: " + ("you confirmed the request." if ans == "yes" else "NOT you. The payment is on hold and security has been alerted."))
@@ -61,7 +64,17 @@ def _on_message(msg, analyze_fn):
     chat = msg["chat"]["id"]
     if msg.get("text", "").startswith("/start"):
         call("sendMessage", chat_id=chat, text=f"Your chat id is {chat}. Enter it in TrustCheck enrolment.\n"
+             "Send /code any time for your current code word.\n"
              "Or forward me any suspicious voice note or message and I'll check it.")
+        return
+    if msg.get("text", "").startswith("/code"):
+        import codeword
+        person = db.person_by_chat(chat)
+        if not person:
+            call("sendMessage", chat_id=chat, text="This chat isn't linked to anyone in TrustCheck yet. Ask security to add your chat id.")
+            return
+        call("sendMessage", chat_id=chat, text=f"Your TrustCheck code word right now:\n\n{codeword.phrase(db.code_secret(person['id'])).upper()}\n\n"
+             f"It changes in {codeword.seconds_left()} s. Say it only when a colleague asks you to prove it's really you.")
         return
     media = msg.get("voice") or msg.get("audio") or msg.get("video_note") or msg.get("video")
     local = _download(media["file_id"]) if media else None

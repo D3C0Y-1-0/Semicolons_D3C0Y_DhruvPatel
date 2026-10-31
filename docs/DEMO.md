@@ -34,6 +34,15 @@ Mentoring round criteria (equal weight) and where each is answered:
 | 2:45 | Check | "Digital arrest (Hinglish)" | Point at the 1930 helpline advice |
 | 3:15 | Live call | Share the Meet tab, play the clone | HIGH as soon as the money is asked for; read out the challenge |
 
+## The "we fight back" segment (about 90 seconds, after the Telegram NO)
+
+1. On the Fake CFO verdict, point at the **30-minute lock**: "Scams run on urgency. We take the urgency away."
+2. **Code word**: "Sir, what's our word?" On the phone linked to Rajesh, send `/code` to @trustcheck_semicolons_bot and read the two words out. Type them into *Ask for Rajesh's code word*: green. Type anything else: red, "treat as an impostor".
+3. **Decoy Mode**: press *Start Decoy Mode*. Read the decoy's line ("what exact name should I write as the beneficiary?"). Paste a scammer reply such as `Use UPI then, fastpay.vendor@ybl. Hurry up` and press *Extract and reply*. The UPI id lights up and goes on the blocklist.
+4. **Blocklist pays off**: open Security queue to show the *Mule blocklist*. Then on Check, paste a polite, harmless-looking `Please send the pending invoice to UPI fastpay.vendor@ybl today. Thanks` with no claimed person: **HIGH**, purely because that UPI id was caught by the decoy.
+
+Line: "Every other tool defends. We turn the scam into evidence against the scammer."
+
 ## If something breaks
 
 - Backend down: the sidebar shows "Backend offline". Restart uvicorn; the page reconnects by itself.

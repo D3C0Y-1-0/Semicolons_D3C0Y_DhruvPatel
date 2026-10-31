@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import Verdict, { BAND_TEXT } from "../components/Verdict.jsx";
+import { MuleList } from "../components/Defense.jsx";
 import { api } from "../lib/api.js";
 
 const STATUS = { open: "Open", verifying: "Verifying", verified: "Verified genuine", confirmed_attack: "Confirmed attack" };
@@ -50,7 +51,9 @@ export default function Cases() {
         ))}
       </div>
 
-      {!shown.length ? <p className="text-ink-soft">{cases.length ? "Nothing matches this filter." : "No checks yet. Run one from Check a message."}</p> : (
+      <MuleList />
+
+      {!shown.length ?<p className="text-ink-soft">{cases.length ? "Nothing matches this filter." : "No checks yet. Run one from Check a message."}</p> : (
         <div className="overflow-x-auto glass rounded-[2rem] p-2 sm:p-4">
           <table className="w-full text-left border-collapse">
             <thead><tr className="text-sm text-ink-soft border-b border-ink/40">

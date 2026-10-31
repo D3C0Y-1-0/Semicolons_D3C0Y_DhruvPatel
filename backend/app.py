@@ -5,6 +5,7 @@ import os
 import random
 import shutil
 import tempfile
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -16,8 +17,10 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile, WebSocket, W
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from fastapi.responses import PlainTextResponse  # noqa: E402
 
+import codeword  # noqa: E402
 import db  # noqa: E402
 import fusion  # noqa: E402
+import mules  # noqa: E402
 import report  # noqa: E402
 import verify  # noqa: E402
 from detectors import identity, message  # noqa: E402
@@ -26,6 +29,7 @@ AUDIO_EXT = {".wav", ".mp3", ".m4a", ".ogg", ".opus", ".flac", ".aac", ".amr"}
 VIDEO_EXT = {".mp4", ".mov", ".mkv", ".avi", ".webm", ".3gp"}
 IMAGE_EXT = {".jpg", ".jpeg", ".png", ".webp", ".heic"}
 LIVE_CONTEXT_S = 90  # seconds of the call the live transcript covers
+HOLD_MINUTES = int(os.getenv("HOLD_MINUTES", "30"))  # cooling-off lock on HIGH payment/credential requests
 
 CHALLENGES = [  # GOTCHA (NYU): occlusion and face deformation break real-time deepfakes best
     "Ask them to slowly wave a hand across their face.",
@@ -86,6 +90,9 @@ def run_analysis(media_path=None, text="", eml_bytes=None, claimed_id=None, chan
 
     msg_signals, facts, info = message.analyze(text, eml_bytes, approval_limit=(person or {}).get("approval_limit"))
     signals += msg_signals
+    mule_sig, mule_facts, identifiers = mules.signals(f"{text}\n{sender or ''}")
+    signals += mule_sig
+    facts |= mule_facts
     if not person:
         person = db.find_person_by_domain_or_name(text + " " + str((info.get("header") or {}).get("from", "")))
     b_sig, b_facts = identity.biometric_signals(person, voice_emb, face_emb)
@@ -97,7 +104,7 @@ def run_analysis(media_path=None, text="", eml_bytes=None, claimed_id=None, chan
     result = fusion.fuse(signals, facts.get("action", "none"), facts)
     result |= {"summary": "", "facts": facts, "channel": channel, "sender": sender, "errors": errors,
                "claimed_person": {"id": person["id"], "name": person["name"], "role": person.get("role")} if person else None,
-               "message": info, **extra}
+               "message": info, "identifiers": identifiers, **extra}
     # spec 7: even a LOW verdict badges media that looks synthetic (weak "no provenance" metadata doesn't count)
     result["synthetic_media"] = any((s["score"] or 0) >= (0.9 if s["signal"] == "image_synthetic" else 0.5)
                                     for s in signals if s["signal"] in ("audio_spoof", "face_video", "image_univfd", "image_synthetic"))
@@ -113,6 +120,8 @@ def run_analysis(media_path=None, text="", eml_bytes=None, claimed_id=None, chan
                                          "Tell a family member; scammers rely on keeping you isolated on the call"]
     if media_path and result["band"] != "LOW":
         result["challenge"] = challenge()
+    if result["band"] == "HIGH" and result["action"] in ("payment", "payment_high", "credentials"):
+        result["hold_until"] = time.time() + HOLD_MINUTES * 60  # only the real person's YES lifts it early
     result["_voice_emb"] = voice_emb  # kept server-side for campaign clustering, stripped before responding
     return result
 
@@ -239,8 +248,36 @@ def send_verify(cid: str):
 @app.post("/cases/{cid}/decision")
 def decision(cid: str, answer: str = Form(...)):
     """Manual fallback when Telegram is unreachable: answer = yes | no."""
-    return db.update_case(cid, status="verified" if answer == "yes" else "confirmed_attack",
-                          result_patch={"verification": {"answer": answer, "manual": True}})
+    c = db.update_case(cid, status="verified" if answer == "yes" else "confirmed_attack",
+                       result_patch={"verification": {"answer": answer, "manual": True}})
+    if c and answer == "no":
+        mules.harvest_case(c, "confirmed attack")
+    return c
+
+
+@app.post("/cases/{cid}/decoy")
+def decoy(cid: str, scammer: str = Form("")):
+    """Decoy Mode: the next reply to send the scammer; their replies are mined for mule accounts."""
+    c = db.get_case(cid)
+    if not c:
+        raise HTTPException(404)
+    state = mules.decoy_turn(c, scammer)
+    db.update_case(cid, result_patch={"decoy": state})
+    return state
+
+
+@app.get("/mules")
+def mule_list():
+    return [{**m, "label": mules.LABEL.get(m["kind"], m["kind"])} for m in db.list_mules()]
+
+
+@app.post("/people/{pid}/code")
+def code_check(pid: str, said: str = Form(...)):
+    """Human 2FA: did the caller say the claimed person's current code word? The word itself never leaves the server."""
+    secret = db.code_secret(pid)
+    if not secret:
+        raise HTTPException(404)
+    return {"match": codeword.check(secret, said), "person": db.get_person(pid)["name"]}
 
 
 @app.get("/cases/{cid}/report", response_class=PlainTextResponse)
@@ -298,6 +335,9 @@ async def live(ws: WebSocket, session: str, claimed_person_id: str = None, chann
                 signals.append({"signal": "audio_spoof", "label": "Synthetic voice (live)", "score": audio.clip_score(timeline),
                                 "why": f"{sum(w['p_fake'] >= .5 for w in timeline)} of {len(timeline)} segments sound synthetic", "evidence": []})
             m_sig, facts, info = message.analyze(transcript, approval_limit=(person or {}).get("approval_limit"))
+            mule_sig, mule_facts, _ = mules.signals(transcript)
+            m_sig += mule_sig
+            facts |= mule_facts
             b_sig, b_facts = identity.biometric_signals(person, voice_emb or None)
             c_sig, c_facts = identity.context_signal(person, channel, None, dt.datetime.now().hour,
                                                     facts.get("action", "none"), facts.get("amount_inr"))

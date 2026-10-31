@@ -1,5 +1,6 @@
 """SQLite store: Org Trust Graph (people) and cases. Embeddings only, never raw media."""
 import json
+import secrets
 import sqlite3
 import time
 import uuid
@@ -20,6 +21,10 @@ CREATE TABLE IF NOT EXISTS cases (
   claimed_person_id TEXT, summary TEXT, result TEXT,  -- full analysis JSON
   voice_emb TEXT, campaign TEXT                      -- same cloned voice across cases = one campaign
 );
+CREATE TABLE IF NOT EXISTS mules (                   -- accounts, IFSC, UPI ids, phones scammers used
+  kind TEXT, value TEXT, first_case TEXT, first_seen REAL, hits INTEGER DEFAULT 1, source TEXT,
+  PRIMARY KEY (kind, value)
+);
 """
 CAMPAIGN_SIM = 0.60  # ponytail: tune on eval; ECAPA same-speaker pairs usually sit well above this
 
@@ -28,6 +33,10 @@ def conn():
     c = sqlite3.connect(DB_PATH)
     c.row_factory = sqlite3.Row
     c.executescript(SCHEMA)
+    try:  # Human 2FA secret, added after the first release
+        c.execute("ALTER TABLE people ADD COLUMN code_secret TEXT")
+    except sqlite3.OperationalError:
+        pass
     return c
 
 
@@ -48,8 +57,9 @@ def add_person(**p):
     for k in ("channels", "usual_requests", "voice_emb", "face_emb"):
         if p.get(k) is not None:
             p[k] = json.dumps(p[k])
+    p.setdefault("code_secret", secrets.token_hex(16))
     cols = ["id", "name", "role", "email", "phone", "telegram_chat_id", "channels", "work_start",
-            "work_end", "approval_limit", "usual_requests", "voice_emb", "face_emb"]
+            "work_end", "approval_limit", "usual_requests", "voice_emb", "face_emb", "code_secret"]
     vals = [pid] + [p.get(k) for k in cols[1:]]
     with conn() as c:
         c.execute(f"INSERT OR REPLACE INTO people ({','.join(cols)}) VALUES ({','.join('?' * len(cols))})", vals)
@@ -64,8 +74,9 @@ def get_person(pid):
 def list_people():
     with conn() as c:
         rows = [_person(r) for r in c.execute("SELECT * FROM people ORDER BY name")]
-    for r in rows:  # never send embeddings to the browser
+    for r in rows:  # never send embeddings or the code-word secret to the browser
         r["voice_enrolled"], r["face_enrolled"] = bool(r.pop("voice_emb")), bool(r.pop("face_emb"))
+        r.pop("code_secret", None)
     return rows
 
 
@@ -141,3 +152,39 @@ def list_cases(limit=100):
     with conn() as c:
         return [{k: r[k] for k in ("id", "created", "band", "risk", "status", "claimed_person_id", "summary", "campaign")}
                 for r in c.execute("SELECT * FROM cases ORDER BY created DESC LIMIT ?", (limit,))]
+
+
+def person_by_chat(chat_id):
+    with conn() as c:
+        return _person(c.execute("SELECT * FROM people WHERE telegram_chat_id=?", (str(chat_id),)).fetchone())
+
+
+def code_secret(pid):
+    """The person's Human 2FA secret, created on first use for people enrolled before the feature existed."""
+    p = get_person(pid)
+    if not p:
+        return None
+    if not p.get("code_secret"):
+        p["code_secret"] = secrets.token_hex(16)
+        with conn() as c:
+            c.execute("UPDATE people SET code_secret=? WHERE id=?", (p["code_secret"], pid))
+    return p["code_secret"]
+
+
+def add_mules(items, case_id, source):
+    with conn() as c:
+        for i in items:
+            c.execute("INSERT INTO mules (kind, value, first_case, first_seen, source) VALUES (?,?,?,?,?) "
+                      "ON CONFLICT(kind, value) DO UPDATE SET hits = hits + 1", (i["kind"], i["value"], case_id, time.time(), source))
+
+
+def find_mules(items):
+    if not items:
+        return []
+    with conn() as c:
+        return [dict(r) for i in items for r in c.execute("SELECT * FROM mules WHERE kind=? AND value=?", (i["kind"], i["value"]))]
+
+
+def list_mules():
+    with conn() as c:
+        return [dict(r) for r in c.execute("SELECT * FROM mules ORDER BY first_seen DESC")]

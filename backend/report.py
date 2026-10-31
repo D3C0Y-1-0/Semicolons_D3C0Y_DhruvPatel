@@ -33,13 +33,16 @@ Channel: {r.get('channel') or "unknown"}. Sender: {facts.get('sender_email') or 
 ## Indicators observed
 {chr(10).join(indicators) or "- none"}
 
+## Payment and contact identifiers used by the attacker
+{chr(10).join(f"- {i['label']}: {i['value']}" for i in (r.get("decoy") or {}).get("harvested") or r.get("identifiers") or []) or "- none found"}
+
 ## Policy rules triggered
 {chr(10).join("- " + x for x in r.get("rules_fired", [])) or "- none"}
 
 ## Actions taken
 - Requested action placed on hold pending out-of-band verification
 - Verification result: {r.get('verification', {}).get('answer', 'pending')}
-- Sender identifiers blocked: <fill in>
+- Identifiers above added to the organisation's mule blocklist{" (some gathered by Decoy Mode)" if r.get("decoy") else ""}
 - Affected employee briefed: <fill in>
 
 ## Affected systems

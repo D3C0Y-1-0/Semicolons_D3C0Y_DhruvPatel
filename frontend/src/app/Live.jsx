@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { CodeWordCheck } from "../components/Defense.jsx";
 import { Stamp } from "../components/Verdict.jsx";
 import { api, WS } from "../lib/api.js";
 
@@ -57,6 +58,7 @@ export default function Live() {
         </div>
       </div>
       {error && <p className="text-high" role="alert">{error}</p>}
+      {claimed && <CodeWordCheck person={people.find((p) => p.id === claimed)} compact />}
 
       <AnimatePresence>
         {state && (

@@ -1,6 +1,7 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { api, form } from "../lib/api.js";
+import { CodeWordCheck, DecoyPanel, HoldLock } from "./Defense.jsx";
 import Icon from "./Icons.jsx";
 
 export const BAND_TEXT = { LOW: "text-low", MEDIUM: "text-medium", HIGH: "text-high" };
@@ -158,9 +159,11 @@ export default function Verdict({ result: r, caseId, initialStatus = "open" }) {
       </header>
 
       <section className="glass-strong rounded-[2rem] p-6 sm:p-7 space-y-5">
+        {r.hold_until && caseId && <HoldLock until={r.hold_until} status={status} />}
         <h3 className="text-xl font-bold">What to do now</h3>
         <ul className="space-y-2">{r.recommended_actions.map((a) => <li key={a} className="flex gap-3 items-start"><span aria-hidden className={`mt-2 size-2 rounded-full shrink-0 ${r.band === "LOW" ? "bg-low" : r.band === "MEDIUM" ? "bg-medium" : "bg-high"}`} />{a}</li>)}</ul>
         {r.challenge && <p className="text-lg font-semibold rounded-2xl bg-night text-white px-5 py-4">On the call, try this: {r.challenge}</p>}
+        {r.band !== "LOW" && r.claimed_person && (status === "open" || status === "verifying") && <CodeWordCheck person={r.claimed_person} />}
         {caseId && (
           <>
             <AnimatePresence mode="wait">
@@ -191,6 +194,8 @@ export default function Verdict({ result: r, caseId, initialStatus = "open" }) {
           </>
         )}
       </section>
+
+      {r.band === "HIGH" && caseId && <DecoyPanel caseId={caseId} initial={r.decoy} />}
 
       {r.rules_fired.length > 0 && (
         <section>

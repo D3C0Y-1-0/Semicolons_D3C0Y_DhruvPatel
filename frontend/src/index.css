@@ -31,7 +31,8 @@ body {
     var(--color-paper);
   background-attachment: fixed;
 }
-:focus-visible { outline: 2px solid var(--color-night); outline-offset: 3px; border-radius: 999px; }
+:focus-visible { outline: 2px solid var(--color-night); outline-offset: 3px; } /* the outline follows each element's own corners */
+textarea:focus-visible, input:focus-visible, select:focus-visible { outline-offset: 0; }
 ::selection { background: color-mix(in srgb, var(--color-heat-1) 30%, transparent); }
 
 .wide { font-weight: 700; letter-spacing: -0.03em; }

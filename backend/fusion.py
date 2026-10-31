@@ -23,6 +23,7 @@ WEIGHTS = {
     "lookalike_domain": 0.7,
     "header_auth": 0.6,
     "bad_url": 1.2,
+    "known_mule": 1.5,  # pays to or calls an account/number already caught in an attack
 }
 
 IMPACT = {
@@ -52,6 +53,8 @@ def rules(facts):
     risky_action = facts.get("action") in ("payment", "payment_high", "credentials")
     if risky_action and (facts.get("unregistered_channel") or facts.get("new_beneficiary")):
         fired.append(("Payment or credential request from an unregistered channel or to a new beneficiary", "HIGH"))
+    if facts.get("known_mule"):
+        fired.append(("Names a bank account, UPI id or number already on the mule blocklist", "HIGH"))
     if facts.get("bad_url"):
         fired.append(("Link on a known phishing or malware list", "HIGH"))
     if facts.get("digital_arrest"):

@@ -10,6 +10,7 @@ const P = {
   rupee: "M7 5h10M7 9h10M7 5h3a4 4 0 0 1 0 8H7l7 7",
   user: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4.5 20.5c.8-4 3.8-6.5 7.5-6.5s6.7 2.5 7.5 6.5",
   alert: "M12 4 2.8 19.5h18.4zM12 10v4.5M12 17.2v.3",
+  lock: "M6.5 10.5h11a1 1 0 0 1 1 1V19a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1v-7.5a1 1 0 0 1 1-1zM8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5M12 14.5v2",
 };
 
 export default function Icon({ name, className = "size-5" }) {

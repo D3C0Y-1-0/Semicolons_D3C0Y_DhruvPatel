@@ -35,6 +35,10 @@ Worked examples (must stay true; both `backend/fusion.py` and `frontend/src/lib/
 5. Org Trust Graph: enrolled voiceprints, faces, channels, hours, approval limits, usual requests.
 6. Bharat-ready: Hindi/Hinglish, digital-arrest mode with the 1930 helpline, CERT-In 6-hour report draft, DPDP-aligned (embeddings only).
 7. Campaign clustering: the same cloned voice across cases is linked.
+8. Decoy Mode (headline, ties to the event name): replies as a confused victim so the scammer reveals mule accounts, UPI ids, numbers (`mules.py`, POST /cases/{id}/decoy). English or Hinglish templates.
+9. Mule blocklist: identifiers from decoys and confirmed attacks (Telegram NO or manual) go in table `mules`; any later message naming one gets signal `known_mule` (weight 1.5) and a HIGH policy floor.
+10. Human 2FA: a two-word code that changes every 30 s per person (`codeword.py`, HMAC of a per-person secret that never leaves the server). Real person sends /code to the bot; employee types what the caller said into POST /people/{id}/code.
+11. Cooling-off lock: HIGH payment/credential cases get `hold_until` = now + HOLD_MINUTES (30); only the real person's YES lifts it early.
 
 ## Repo map
 
