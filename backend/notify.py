@@ -38,11 +38,14 @@ def lan_ip():
         return "localhost"
 
 
-def public_url():
-    # read .env each time: a free tunnel gets a new address on every reconnect, and this avoids a backend restart
+def setting(key, default=None):
+    """Read backend/.env each time, so a new tunnel address or mail password works without restarting the backend."""
     from dotenv import dotenv_values
-    url = dotenv_values(os.path.join(os.path.dirname(__file__), ".env")).get("PUBLIC_URL") or os.getenv("PUBLIC_URL")
-    return (url or f"http://{lan_ip()}:{os.getenv('PORT', '8000')}").rstrip("/")
+    return dotenv_values(os.path.join(os.path.dirname(__file__), ".env")).get(key) or os.getenv(key) or default
+
+
+def public_url():
+    return (setting("PUBLIC_URL") or f"http://{lan_ip()}:{os.getenv('PORT', '8000')}").rstrip("/")
 
 
 def sign(pid, what):
@@ -73,15 +76,15 @@ def request_text(case, person):
 
 
 def smtp_ready():
-    return bool(os.getenv("SMTP_USER") and os.getenv("SMTP_PASS"))
+    return bool(setting("SMTP_USER") and setting("SMTP_PASS"))
 
 
 def send_email(to, subject, body):
     msg = EmailMessage()
-    msg["From"], msg["To"], msg["Subject"] = os.getenv("SMTP_FROM") or os.getenv("SMTP_USER"), to, subject
+    msg["From"], msg["To"], msg["Subject"] = setting("SMTP_FROM") or setting("SMTP_USER"), to, subject
     msg.set_content(body)
-    with smtplib.SMTP_SSL(os.getenv("SMTP_HOST", "smtp.gmail.com"), int(os.getenv("SMTP_PORT", "465")), timeout=15) as s:
-        s.login(os.getenv("SMTP_USER"), os.getenv("SMTP_PASS"))
+    with smtplib.SMTP_SSL(setting("SMTP_HOST", "smtp.gmail.com"), int(setting("SMTP_PORT", "465")), timeout=15) as s:
+        s.login(setting("SMTP_USER"), setting("SMTP_PASS").replace(" ", ""))  # Google shows app passwords in groups of 4
         s.send_message(msg)
 
 
