@@ -98,16 +98,25 @@ def poll_forever(analyze_fn):
         try:
             for u in call("getUpdates", offset=offset, timeout=25) or []:
                 offset = u["update_id"] + 1
-                if "callback_query" in u and u["callback_query"].get("data", "").startswith("v:"):
-                    _on_callback(u["callback_query"])
-                elif "message" in u:
-                    _on_message(u["message"], analyze_fn)
+                try:  # one bad update must not swallow the rest, or fail without a trace
+                    if "callback_query" in u and u["callback_query"].get("data", "").startswith("v:"):
+                        print("telegram: answer", u["callback_query"]["data"], flush=True)
+                        _on_callback(u["callback_query"])
+                    elif "message" in u:
+                        m = u["message"]
+                        print("telegram: message from chat", m["chat"]["id"], repr((m.get("text") or "<media>")[:40]), flush=True)
+                        _on_message(m, analyze_fn)
+                except Exception as e:
+                    print("telegram handler error:", repr(e), flush=True)
+                    chat = (u.get("message") or {}).get("chat", {}).get("id")
+                    if chat:
+                        call("sendMessage", chat_id=chat, text=f"Sorry, that failed on the TrustCheck server: {e}")
         except Exception as e:  # network blips must not kill the bot
-            print("telegram poll error:", e)
+            print("telegram poll error:", repr(e), flush=True)
             time.sleep(3)
 
 
 def start(analyze_fn):
     if TOKEN:
         threading.Thread(target=poll_forever, args=(analyze_fn,), daemon=True).start()
-        print("telegram bot polling")
+        print("telegram bot polling", flush=True)
