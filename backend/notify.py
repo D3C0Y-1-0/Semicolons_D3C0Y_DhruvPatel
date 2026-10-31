@@ -90,7 +90,9 @@ def send_email(to, subject, body):
 def deliver(person, subject, text):
     """Email it if SMTP is set up; always return a one-tap email link to send it by hand."""
     sent, errors = [], []
-    if person.get("email") and smtp_ready():
+    if (person.get("email") or "").lower().endswith(("@acme.com", "@acme.in")):  # seed.py's demo addresses: a real company's domain
+        errors.append(f"{person['email']} is a demo address from seed.py, so it wasn't emailed. Put a real inbox in Trust Graph.")
+    elif person.get("email") and smtp_ready():
         try:
             send_email(person["email"], subject, text)
             sent.append("email")
