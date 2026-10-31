@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { api, form } from "../lib/api.js";
 import { SendLinks } from "../components/Defense.jsx";
 
-const field = "w-full bg-white/80 border border-white rounded-xl px-4 py-2.5 mt-1 focus:border-night/40 outline-none";
-const Tick = ({ on, label }) => <span className={`rounded-full px-3 py-1 text-xs font-bold ${on ? "bg-low text-white" : "bg-white/70 text-ink-soft"}`}>{on ? "✓" : "–"} {label}</span>;
+const field = "field mt-1 font-normal";
+const Tick = ({ on, label }) => <span className={`rounded-md px-2 py-0.5 text-[12px] font-semibold ${on ? "bg-low/12 text-low" : "bg-ink/[0.05] text-ink-soft"}`}>{on ? "✓" : "–"} {label}</span>;
 
 export default function People() {
   const [people, setPeople] = useState([]);
@@ -30,21 +30,21 @@ export default function People() {
     catch (err) { setInvite((v) => ({ ...v, [p.id]: { errors: [err.message] } })); }
   };
 
-  const input = (name, label, props = {}) => <label className="block text-sm font-semibold">{label}<input name={name} className={field} {...props} /></label>;
+  const input = (name, label, props = {}) => <label className="block label">{label}<input name={name} className={field} {...props} /></label>;
 
   return (
-    <div className="grid xl:grid-cols-[1fr_24rem] gap-14">
+    <div className="grid xl:grid-cols-[1fr_22rem] gap-8">
       <div>
-        <h2 className="text-5xl font-bold tracking-[-0.04em]">Trust Graph</h2>
-        <p className="text-ink-soft mt-2 max-w-prose">The people attackers are most likely to imitate, and what normal looks like for each. A request that breaks their pattern raises the risk, however real it sounds.</p>
+        <h2 className="text-[28px] font-bold tracking-tight">Trust Graph</h2>
+        <p className="text-ink-soft mt-1 text-[13.5px] max-w-prose">The people attackers are most likely to imitate, and what normal looks like for each. A request that breaks their pattern raises the risk, however real it sounds.</p>
         {!people.length ? <p className="mt-8 text-ink-soft">Nobody enrolled yet. Run <code>python seed.py</code> in the backend for the demo team, or enrol someone here.</p> : (
-          <ul className="mt-8 grid gap-3">{people.map((p) => (
-            <li key={p.id} className="glass rounded-[2rem] p-5 sm:p-6 grid sm:grid-cols-[16rem_1fr] gap-x-8 gap-y-3 items-center">
-              <div className="flex items-center gap-4"><span className="orb size-14 bg-night text-white text-lg font-bold shrink-0">{p.name.split(" ").map((w) => w[0]).join("").slice(0, 2)}</span><div><p className="text-xl font-bold">{p.name}</p><p className="text-ink-soft">{p.role}</p></div></div>
-              <div className="text-sm space-y-1.5">
+          <ul className="mt-5 glass divide-y divide-ink/[0.07]">{people.map((p) => (
+            <li key={p.id} className="p-4 grid sm:grid-cols-[15rem_1fr] gap-x-6 gap-y-3 items-center">
+              <div className="flex items-center gap-4"><span className="orb size-11 bg-gradient-to-b from-[#4a3aa6] to-night text-white text-[15px] font-bold shrink-0 shadow-[inset_0_0.5px_0_rgb(255_255_255/0.4)]">{p.name.split(" ").map((w) => w[0]).join("").slice(0, 2)}</span><div><p className="text-[15px] font-semibold">{p.name}</p><p className="text-ink-soft text-[13px]">{p.role}</p></div></div>
+              <div className="text-[13px] space-y-1.5">
                 <p>Uses {p.channels?.join(", ") || "no channels set"}, usually {p.work_start}:00 to {p.work_end}:00. Approves up to ₹{Number(p.approval_limit || 0).toLocaleString("en-IN")}.</p>
                 <p className="flex flex-wrap gap-2"><Tick on={p.voice_enrolled} label="voiceprint" /><Tick on={p.face_enrolled} label="face" /><Tick on={!!p.email} label="email for verification" />{p.telegram_chat_id && <Tick on label="Telegram" />}</p>
-                <button onClick={() => sendInvite(p)} className="font-semibold underline underline-offset-4">{invite[p.id] ? "Send again" : "Send their code-word page"}</button>
+                <button onClick={() => sendInvite(p)} className="text-night font-semibold hover:underline">{invite[p.id] ? "Send again" : "Send their code-word page"}</button>
               </div>
               {invite[p.id] && <div className="sm:col-span-2"><SendLinks delivery={invite[p.id]} who={p.name.split(" ")[0]} qr={invite[p.id].link} qrLabel={`${p.name.split(" ")[0]} scans this to open their page`} /></div>}
             </li>
@@ -52,10 +52,10 @@ export default function People() {
         )}
       </div>
 
-      <form key={edit?.id || "new"} onSubmit={submit} className="space-y-3 glass-strong rounded-[2rem] p-6 self-start">
-        <h3 className="text-xl font-bold">{edit ? `Update ${edit.name}` : "Enrol someone"}</h3>
-        <p className="text-sm text-ink-soft">Only embeddings are stored, never the recording or photo. Get their consent first.</p>
-        <label className="block text-sm font-semibold">Person
+      <form key={edit?.id || "new"} onSubmit={submit} className="space-y-3 glass-strong p-4 self-start xl:sticky xl:top-0">
+        <h3 className="text-[17px] font-bold">{edit ? `Update ${edit.name}` : "Enrol someone"}</h3>
+        <p className="text-[12.5px] text-ink-soft">Only embeddings are stored, never the recording or photo. Get their consent first.</p>
+        <label className="block label">Person
           <select value={edit?.id || ""} onChange={(e) => setEdit(people.find((p) => p.id === e.target.value) || null)} className={field}>
             <option value="">Someone new</option>
             {people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -70,10 +70,10 @@ export default function People() {
         {input("channels", "Channels they use for work", { defaultValue: edit?.channels?.join(",") ?? "email,teams" })}
         {input("usual_requests", "Requests they normally make", { defaultValue: edit?.usual_requests?.join(",") ?? "information" })}
         <div className="grid grid-cols-2 gap-3">{input("work_start", "Day starts (hour, 0–23)", { type: "number", min: 0, max: 23, step: 1, required: true, defaultValue: edit?.work_start ?? 9 })}{input("work_end", "Day ends (hour, 0–23)", { type: "number", min: 0, max: 23, step: 1, required: true, defaultValue: edit?.work_end ?? 19 })}</div>
-        <label className="block text-sm font-semibold">Voice sample, 20–60 s{edit?.voice_enrolled && " (leave empty to keep the saved one)"}<input name="voice" type="file" accept="audio/*" className="block mt-1 font-normal" /></label>
-        <label className="block text-sm font-semibold">Face photo{edit?.face_enrolled && " (leave empty to keep the saved one)"}<input name="photo" type="file" accept="image/*" className="block mt-1 font-normal" /></label>
-        <button disabled={busy} className="w-full bg-night text-white font-bold py-3.5 rounded-full disabled:opacity-60">{busy ? "Saving…" : edit ? "Save changes" : "Enrol"}</button>
-        {msg && <p className="text-sm" aria-live="polite">{msg}</p>}
+        <label className="block label">Voice sample, 20–60 s{edit?.voice_enrolled && " (leave empty to keep the saved one)"}<input name="voice" type="file" accept="audio/*" className="block mt-1 font-normal text-[12.5px] text-ink file:mr-3 file:h-7 file:px-2.5 file:rounded-md file:border-0 file:bg-night/10 file:text-night file:font-semibold file:cursor-pointer" /></label>
+        <label className="block label">Face photo{edit?.face_enrolled && " (leave empty to keep the saved one)"}<input name="photo" type="file" accept="image/*" className="block mt-1 font-normal text-[12.5px] text-ink file:mr-3 file:h-7 file:px-2.5 file:rounded-md file:border-0 file:bg-night/10 file:text-night file:font-semibold file:cursor-pointer" /></label>
+        <button disabled={busy} className="btn btn-primary w-full h-10">{busy ? "Saving…" : edit ? "Save changes" : "Enrol"}</button>
+        {msg && <p className="text-[13px]" aria-live="polite">{msg}</p>}
       </form>
     </div>
   );

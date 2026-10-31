@@ -38,38 +38,49 @@ export default function Live() {
 
   const alert = state ? { LOW: 0, MEDIUM: 0.5, HIGH: 1 }[state.band] : 0;
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="relative frame dusk overflow-hidden h-80">
-        {running && <Suspense fallback={null}><Spectrogram3D alert={alert} className="absolute inset-x-0 bottom-0 top-[25%]" /></Suspense>}
+        <Suspense fallback={null}><Spectrogram3D alert={alert} className={`absolute inset-x-0 bottom-0 top-[25%] transition-opacity duration-700 ${running ? "opacity-100" : "opacity-70"}`} /></Suspense>
         <div className="relative z-10 p-6 sm:p-8 h-full flex flex-col">
-          <h2 className="text-5xl font-bold tracking-[-0.04em] text-white drop-shadow-[0_2px_24px_rgb(35_22_94/0.25)]">Live call guard</h2>
+          <h2 className="text-4xl font-bold tracking-[-0.03em] text-white drop-shadow-[0_2px_24px_rgb(35_22_94/0.25)]">Live call guard</h2>
           <p className="mt-2 max-w-md font-semibold">{running ? "Listening alongside you. A reading lands every 3 seconds." : "Open the Meet, Zoom or Teams call in another tab, then share that tab here."}</p>
-          <div className="mt-auto flex flex-wrap items-end gap-3 glass rounded-[1.75rem] p-3 self-start">
-            <label className="text-sm font-semibold pl-2">The caller claims to be
-              <select value={claimed} onChange={(e) => setClaimed(e.target.value)} disabled={running} className="block mt-1 bg-white/80 border border-white rounded-full px-4 py-2.5 min-w-56">
+          <div className="mt-auto flex flex-wrap items-end gap-3 rounded-[12px] bg-white/80 backdrop-blur-xl p-3 self-start shadow-[0_10px_30px_-14px_rgb(35_22_94/0.5)]">
+            <label className="label pl-1">The caller claims to be
+              <select value={claimed} onChange={(e) => setClaimed(e.target.value)} disabled={running} className="field block mt-1 min-w-56">
                 <option value="">Unknown</option>
                 {people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </label>
             {running
-              ? <button onClick={() => stop.current()} className="bg-white px-5 py-3 rounded-full font-bold">Stop listening</button>
-              : <button onClick={start} className="bg-night text-white px-6 py-3 rounded-full font-bold">Listen to a call tab</button>}
+              ? <button onClick={() => stop.current()} className="btn btn-plain h-9">Stop listening</button>
+              : <button onClick={start} className="btn btn-primary h-9">Listen to a call tab</button>}
           </div>
         </div>
       </div>
       {error && <p className="text-high" role="alert">{error}</p>}
+      {!state && !running && (
+        <ol className="glass grid sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-ink/[0.07]">
+          {[["Open the call", "Join the Meet, Zoom or Teams call in another Chrome tab."],
+            ["Share that tab", "Press Listen, pick the call tab and tick \"Also share tab audio\"."],
+            ["Watch the reading", "Every 3 seconds: cloned voice, voiceprint, what's being asked, and a challenge to try."]].map(([h, t], i) => (
+            <li key={h} className="p-4 flex gap-3">
+              <span className="orb size-6 shrink-0 bg-night/10 text-night text-[12px] font-bold tnum">{i + 1}</span>
+              <span><span className="block font-semibold">{h}</span><span className="block text-[13px] text-ink-soft mt-0.5">{t}</span></span>
+            </li>))}
+        </ol>
+      )}
       {claimed && <CodeWordCheck person={people.find((p) => p.id === claimed)} compact />}
 
       <AnimatePresence>
         {state && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid lg:grid-cols-[auto_1fr] gap-10 items-start">
             <Stamp band={state.band} risk={state.risk} />
-            <div className="space-y-5 min-w-0 glass rounded-[2rem] p-6">
-              <p className="text-2xl max-w-prose">{state.summary}</p>
+            <div className="space-y-4 min-w-0 glass p-5">
+              <p className="text-[17px] leading-snug max-w-prose">{state.summary}</p>
               <AnimatePresence mode="wait">
                 {state.challenge && (
                   <motion.p key={state.challenge} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
-                    className="text-xl font-bold rounded-2xl bg-night text-white px-5 py-4">Try this now: {state.challenge}</motion.p>
+                    className="font-semibold rounded-[10px] bg-night text-white px-4 py-3">Try this now: {state.challenge}</motion.p>
                 )}
               </AnimatePresence>
               {state.tactics.length > 0 && <p className="text-ink-soft">Heard: {state.tactics.map((t) => TACTIC[t]).join(", ")}</p>}
