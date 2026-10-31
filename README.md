@@ -111,6 +111,8 @@ The 2023 head misses today's one-step diffusion images; the refit catches them. 
 
 **Voice clones of a specific person.** `train/gen_voice_clones.py` (F5-TTS, its own venv) clones 40 LibriSpeech speakers from one clip each, 120 clones; `train/eval_voice_clones.py` scores them: pellav2 caught 120/120 (also after WhatsApp Opus), flagging 0.8% of 360 real clips of the same speakers. The voiceprint check accepted 100% of the clones as the real person (clones scored 0.78 similarity, the person's own other clips 0.70): measured proof that biometrics alone can't stop a clone, which is why TrustCheck adds the code word and the real person's YES/NO. Report: `eval/voice_clone_report.md`.
 
+**Face-swapped video (GenD), calibrated by us.** `train/eval_face_video.py` scores 150 face-swap and 150 real videos (KhunPop/deepfake, MIT, FaceForensics++-style) the way the app does. Raw GenD ranked them well (AUROC 0.973) but flagged 40% of real videos, 87% after WhatsApp-style re-encoding. `train/calibrate_face_video.py` fits a Platt map on 240 *other* videos (train split, both codecs), saved as `models/gend_calibration.json` and applied by `detectors/video.py`. On the same test videos: 91% of swaps caught with 3% of real flagged; after re-encoding 88% caught, 35% of real flagged (the open weakness). `USE_TUNED_HEADS=0` restores raw scores. Report: `eval/face_video_report.md`.
+
 ## 5. How a verdict is made
 
 ```

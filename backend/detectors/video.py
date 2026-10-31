@@ -3,6 +3,8 @@
 Run `python ../eval/check_gend.py` once after setup to confirm GenD's fake-class index.
 """
 import functools
+import json
+import math
 import os
 
 import numpy as np
@@ -12,6 +14,27 @@ from detectors.audio import device
 GEND_MODEL = os.getenv("GEND_MODEL", "yermandy/GenD_CLIP_L_14")
 FAKE_INDEX = int(os.getenv("GEND_FAKE_INDEX", "1"))  # ponytail: index 1 = fake; eval/check_gend.py verifies it
 N_FRAMES = int(os.getenv("VIDEO_FRAMES", "32"))       # set 8 on CPU-only laptops
+
+
+CALIBRATION = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models", "gend_calibration.json")
+
+
+@functools.cache
+def _calibration():
+    """Platt map fitted by train/calibrate_face_video.py: raw GenD runs high on real (and re-encoded) faces."""
+    if os.getenv("USE_TUNED_HEADS", "1") == "0" or not os.path.exists(CALIBRATION):
+        return None
+    with open(CALIBRATION, encoding="utf-8") as f:
+        c = json.load(f)
+    return c["a"], c["b"]
+
+
+def calibrated(p):
+    c = _calibration()
+    if c is None:
+        return p
+    p = min(max(p, 1e-4), 1 - 1e-4)
+    return 1 / (1 + math.exp(-(c[0] * math.log(p / (1 - p)) + c[1])))
 
 
 @functools.cache
@@ -103,10 +126,11 @@ def analyze(path, wav=None):
         if not crops:
             res["errors"].append("no face found in the video")
             return res
-        probs = fake_probs(crops)
+        raw = fake_probs(crops)
+        k = max(1, len(raw) // 3)
+        score = round(calibrated(float(np.mean(sorted(raw, reverse=True)[:k]))), 3)  # calibration was fitted on this clip score
+        probs = [calibrated(p) for p in raw]  # per-frame, for the timeline dots and evidence
         res["frames"] = [{"t": t, "p_fake": round(p, 3)} for t, p in zip(times, probs)]
-        k = max(1, len(probs) // 3)
-        score = round(float(np.mean(sorted(probs, reverse=True)[:k])), 3)
         order = sorted(range(len(probs)), key=lambda i: -probs[i])[:3]
         res["signals"].append({
             "signal": "face_video", "label": "Face manipulation (GenD)", "score": score,
