@@ -73,24 +73,26 @@ Verified in the build sandbox:
 - Chrome extension loads and its popup reaches the backend.
 - Message classifier trained: SMS held-out AUROC 0.995; unseen Indian templates AUROC 0.849, recall 0.80, FPR 0.20.
 
-**Not yet run anywhere** (Hugging Face was blocked in the build sandbox): pellav2, ECAPA, Whisper, InsightFace, GenD, UnivFD forward passes. First job on the laptop: `python setup_models.py`. Its GenD step confirms `GEND_FAKE_INDEX` (assumed 1).
+Verified on the team laptop (RTX 4050 6 GB, i5-13450HX, Python 3.11 venv in `backend/.venv`, torch 2.8.0+cu126), 31 Oct 2026:
+- Every model loads and runs: pellav2 (GPU, 2.8 GB VRAM), ECAPA, faster-whisper small + large-v3 (GPU), InsightFace buffalo_l (CPU onnxruntime), GenD, UnivFD.
+- Smoke results (not an eval, n=1 each): Windows TTS voice p(fake) 0.999, LibriSpeech human 0.001, both unchanged after Opus 16 kbps; GenD on FF++ sample face-swap 0.967 vs real 0.319, so `GEND_FAKE_INDEX=1` is right.
+- `/analyze` with media: TTS "CFO" voice note HIGH 100 with transcript; same voice compressed is linked as one campaign; real speech LOW 0; face-swap video HIGH 100 (GenD 0.979 over 32 frames, lip-sync 0.64); face-swap still with no request LOW + "Synthetic media detected" badge.
+- First media check after a backend start is slow while models load (about 45 s audio, 80 s video); later checks take a few seconds.
 
 ## Run
 
 ```powershell
-conda activate trustcheck
-cd backend; python seed.py; uvicorn app:app --port 8000
+cd backend; .\.venv\Scripts\activate; python seed.py; uvicorn app:app --port 8000
 cd frontend; npm install; npm run dev        # landing http://localhost:5173, console /#/app/check
 ```
-Setup details, Windows gotchas (ffmpeg via winget, insightface needs MS C++ Build Tools, torch 2.8 CUDA wheel) and the 4-minute demo flow are in README.md.
+Setup details, Windows gotchas (ffmpeg falls back to the imageio-ffmpeg binary, insightface needs MS C++ Build Tools, torch 2.8 CUDA wheel) and the 4-minute demo flow are in README.md. Before the demo, run one voice note and one video through Check once so the models are warm.
 
 ## Next steps, in priority order
 
-1. Laptop: install, `python setup_models.py` until all PASS; fix the GenD index if flagged.
-2. Record consented team voices; clone them (Chatterbox, F5-TTS, XTTS-v2); film Deep-Live-Cam swaps; fill `eval/manifest.csv`; run `python ../eval/run_eval.py ../eval/manifest.csv --compress`; tune VOICE_THRESHOLD, FACE_THRESHOLD and weights; put the real numbers in the deck.
-3. Telegram bot token in `.env`; each enrolled person sends /start; test the live NO-tap flow end to end.
-4. Pitch deck (10 slides; outline in the master plan) and a pre-recorded backup demo video.
-5. Optional: XLS-R + SLS as a second audio model (needs fairseq + torch 1.13, so run it as a separate service), SyncNet in place of the heuristic lip-sync check, Grad-CAM heatmaps.
+1. Record consented team voices; clone them (Chatterbox, F5-TTS, XTTS-v2); film Deep-Live-Cam swaps; fill `eval/manifest.csv`; run `python ../eval/run_eval.py ../eval/manifest.csv --compress`; tune VOICE_THRESHOLD, FACE_THRESHOLD and weights; put the real numbers in the deck.
+2. Telegram bot token in `.env`; each enrolled person sends /start; test the live NO-tap flow end to end.
+3. Pitch deck (10 slides; outline in the master plan) and a pre-recorded backup demo video.
+4. Optional: XLS-R + SLS as a second audio model (needs fairseq + torch 1.13, so run it as a separate service), SyncNet in place of the heuristic lip-sync check, Grad-CAM heatmaps.
 
 ## Conventions
 

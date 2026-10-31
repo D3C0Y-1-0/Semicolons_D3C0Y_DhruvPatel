@@ -97,8 +97,14 @@ def run_analysis(media_path=None, text="", eml_bytes=None, claimed_id=None, chan
     result |= {"summary": "", "facts": facts, "channel": channel, "sender": sender, "errors": errors,
                "claimed_person": {"id": person["id"], "name": person["name"], "role": person.get("role")} if person else None,
                "message": info, **extra}
+    # spec 7: even a LOW verdict badges media that looks synthetic (weak "no provenance" metadata doesn't count)
+    result["synthetic_media"] = any((s["score"] or 0) >= (0.9 if s["signal"] == "image_synthetic" else 0.5)
+                                    for s in signals if s["signal"] in ("audio_spoof", "face_video", "image_univfd", "image_synthetic"))
     result["summary"] = summarise(result)
     result["recommended_actions"] = ACTIONS[result["band"]]
+    if result["synthetic_media"] and result["band"] == "LOW":
+        result["recommended_actions"] = ["Nothing risky is being asked, so no need to block it",
+                                         "Don't forward or rely on this media as genuine: it looks AI-generated or manipulated"]
     if facts.get("digital_arrest"):
         result["recommended_actions"] = ["Hang up. Real police, CBI or courts never arrest anyone over a video call",
                                          "Don't pay or share any OTP, even 'for verification'",

@@ -131,7 +131,8 @@ export default function Verdict({ result: r, caseId, initialStatus = "open" }) {
       <header className="grid sm:grid-cols-[auto_1fr] gap-8 items-center">
         <Stamp band={r.band} risk={r.risk} />
         <div>
-          <p className="wide text-3xl font-extrabold leading-tight">{HEADLINE[r.band]}</p>
+          <p className="wide text-3xl font-extrabold leading-tight">{r.band === "LOW" && r.synthetic_media ? "Synthetic media, but nothing risky is asked." : HEADLINE[r.band]}</p>
+          {r.synthetic_media && <p className="inline-block mt-2 text-sm font-bold text-high border border-high rounded px-2 py-0.5">Synthetic media detected</p>}
           <ul className="mt-3 space-y-1.5 max-w-prose">
             {[...r.signals.filter((x) => x.contribution > 0).slice(0, 4).map((x) => x.why), ...r.rules_fired.map((x) => "Policy: " + x)].map((w) => (
               <li key={w} className="flex gap-2.5"><span aria-hidden className={`${BAND_TEXT[r.band]} font-bold`}>!</span><span>{w[0].toUpperCase() + w.slice(1)}</span></li>

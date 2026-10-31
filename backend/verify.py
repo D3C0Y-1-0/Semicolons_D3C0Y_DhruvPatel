@@ -70,7 +70,10 @@ def _on_message(msg, analyze_fn):
             os.remove(local)
     hi = {"HIGH": "HIGH RISK / उच्च जोखिम", "MEDIUM": "MEDIUM RISK / मध्यम जोखिम", "LOW": "LOW RISK / कम जोखिम"}[r["band"]]
     advice = ("Do not pay, share OTPs or stay on the call. Real police never 'digitally arrest' anyone. Report at cybercrime.gov.in or call 1930.\n"
-              "पैसे न भेजें, OTP न बताएं। असली पुलिस 'डिजिटल अरेस्ट' नहीं करती। 1930 पर कॉल करें।") if r["band"] != "LOW" else "No strong warning signs found. Still verify through a number you already know."
+              "पैसे न भेजें, OTP न बताएं। असली पुलिस 'डिजिटल अरेस्ट' नहीं करती। 1930 पर कॉल करें।") if r["band"] != "LOW" else (
+              "This media looks AI-generated or manipulated, but nothing risky is being asked. Don't forward it as genuine.\n"
+              "यह मीडिया नकली (AI) लगता है। इसे असली मानकर आगे न भेजें।" if r.get("synthetic_media")
+              else "No strong warning signs found. Still verify through a number you already know.")
     call("sendMessage", chat_id=chat, text=f"{hi} ({r['risk']:.0f}/100)\n\n{r['summary']}\n\n{advice}")
 
 
