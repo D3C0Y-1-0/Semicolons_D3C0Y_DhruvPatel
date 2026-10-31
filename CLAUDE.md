@@ -82,7 +82,8 @@ Verified on the team laptop (RTX 4050 6 GB, i5-13450HX, Python 3.11 venv in `bac
 Pushed to GitHub (branch `d3coy-trustcheck`), 31 Oct 2026:
 - Full browser pass: four Check scenarios (CFO wire HIGH 98, digital arrest HIGH with 1930, CEO OTP HIGH, harmless LOW 0), decision buttons, queue, Trust Graph.
 - Live call fixed: it used to transcribe 3 s fragments with no context ("45 lakh" heard as "45 lock"), so a cloned CFO stayed LOW 20 live. It now re-transcribes the last 90 s as one piece with an Indian-money prompt: HIGH 99.9 within 13 s, real speech LOW 0, about 1.2 s per update.
-- Pitch deck `docs/TrustCheck_pitch.pptx` (10 slides, speaker notes, only measured numbers) and run-sheet `docs/DEMO.md`.
+- Pitch deck `docs/TrustCheck_pitch.pptx` (11 slides incl. Current progress, speaker notes, only measured numbers) and run-sheet `docs/DEMO.md` (maps slides to the mentoring-round criteria).
+- Telegram verified end to end: bot @trustcheck_semicolons_bot (token in backend/.env, never committed); Rajesh Kumar linked to the team phone's chat; a Fake CFO wire sent "Did you send this?", the NO tap turned the case into `confirmed_attack`.
 
 ## Run
 
@@ -95,7 +96,7 @@ Setup details, Windows gotchas (ffmpeg falls back to the imageio-ffmpeg binary, 
 ## Next steps, in priority order
 
 1. Record consented team voices; clone them (Chatterbox, F5-TTS, XTTS-v2); film Deep-Live-Cam swaps; fill `eval/manifest.csv`; run `python ../eval/run_eval.py ../eval/manifest.csv --compress`; tune VOICE_THRESHOLD, FACE_THRESHOLD and weights; put the real numbers in the deck.
-2. Telegram bot token in `.env`; each enrolled person sends /start; test the live NO-tap flow end to end.
+2. Link the other enrolled people (Ananya, Farhan) to their own Telegram chats if they'll be shown live.
 3. Once eval numbers exist, replace the left column of deck slide 9 with them; record the backup demo video following `docs/DEMO.md`.
 4. Optional: XLS-R + SLS as a second audio model (needs fairseq + torch 1.13, so run it as a separate service), SyncNet in place of the heuristic lip-sync check, Grad-CAM heatmaps.
 

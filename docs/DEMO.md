@@ -1,6 +1,16 @@
 # Demo run-sheet (4 minutes)
 
-Slides: `docs/TrustCheck_pitch.pptx` (10 slides, speaker notes on each). Pitch slides 1 to 4, then demo, then slides 9 and 10.
+Slides: `docs/TrustCheck_pitch.pptx` (11 slides, speaker notes on each). Pitch slides 1 to 4, then demo, then slides 9 to 11.
+
+Mentoring round criteria (equal weight) and where each is answered:
+
+| Criterion | Slides | Show live |
+| --- | --- | --- |
+| Problem understanding | 2 (Arup, 41% of CISOs, digital arrest) | |
+| Proposed approach | 3, 4, 7 | Landing pipeline |
+| Technical feasibility | 5, 10 (one 6 GB GPU, 2.5 s per voice note) | Check with a voice note |
+| Innovation and creativity | 3, 5, 6, 8 (risk of acting, policy floors, challenges, Telegram, India) | Maths lab "A perfect fake" |
+| Current progress | 9, 10 | The full run below |
 
 ## 30 minutes before
 
