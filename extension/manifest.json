@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "TrustCheck Live Call Guard",
+  "version": "0.1.0",
+  "description": "Listens to a Meet, Zoom or Teams tab and warns you during the call if the voice or the request looks like a deepfake scam.",
+  "permissions": [
+    "tabCapture",
+    "offscreen",
+    "notifications",
+    "storage"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "TrustCheck"
+  },
+  "icons": {
+    "128": "icon.png"
+  }
+}

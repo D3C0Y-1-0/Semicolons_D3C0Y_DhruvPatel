@@ -1,0 +1,10 @@
+path,label,kind,text,claimed_person_id,channel
+data/audio/dhruv_real_01.wav,real,audio,,,
+data/audio/dhruv_clone_f5_01.wav,fake,audio,,,
+data/video/team_real_01.mp4,real,video,,,
+data/video/team_swap_01.mp4,fake,video,,,
+data/images/camera_01.jpg,real,image,,,
+data/images/flux_01.png,fake,image,,,
+,attack,message,"Urgent and confidential. Transfer ₹45 lakh to the new vendor account in 30 minutes, WhatsApp me.",,
+,benign,message,"Reminder: quarterly review moved to Thursday 3 pm.",,
+data/audio/dhruv_clone_f5_01.wav,attack,scenario,"Send the payment now, new account",,whatsapp

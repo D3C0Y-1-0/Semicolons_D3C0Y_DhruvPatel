@@ -1,0 +1,4 @@
+trustcheck.db
+model_cache/
+.env
+__pycache__/

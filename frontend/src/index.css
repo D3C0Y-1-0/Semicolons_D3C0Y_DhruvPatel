@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+@theme {
+  --color-night: #0d1730;      /* hero ink */
+  --color-night-2: #15234a;
+  --color-mint: #9fd8c5;       /* spectrogram lines on night */
+  --color-paper: #eef3f1;      /* security paper */
+  --color-sheet: #fbfcfb;
+  --color-ink: #14213d;
+  --color-ink-soft: #4a5672;
+  --color-rule: #c9d5d0;
+  --color-low: #2f8f7a;        /* genuine */
+  --color-medium: #b7791f;     /* caution */
+  --color-high: #c2341f;       /* synthetic / attack */
+  --color-stamp: #3b4ba8;      /* actions */
+  --font-sans: "Archivo", system-ui, sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+body { background: var(--color-paper); color: var(--color-ink); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+:focus-visible { outline: 2px solid var(--color-stamp); outline-offset: 3px; border-radius: 3px; }
+::selection { background: color-mix(in srgb, var(--color-high) 25%, transparent); }
+
+.wide { font-stretch: 125%; letter-spacing: -0.02em; }
+.narrow { font-stretch: 62%; }
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* verdict stamp: double rule, condensed caps, worn ink */
+.stamp {
+  font-stretch: 62%;
+  font-weight: 800;
+  line-height: 0.88;
+  border: 5px double currentColor;
+  border-radius: 8px;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -2.2 1.75'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -2.2 1.75'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* fine guilloche-like grain on paper sections, like cheque stock */
+.paper-grain {
+  background-image: repeating-linear-gradient(115deg, rgb(20 33 61 / 0.025) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(65deg, rgb(20 33 61 / 0.02) 0 1px, transparent 1px 9px);
+}
+
+input[type="range"] { accent-color: var(--color-ink); }

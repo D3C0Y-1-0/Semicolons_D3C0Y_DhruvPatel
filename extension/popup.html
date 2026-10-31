@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { width: 320px; margin: 0; padding: 14px; font: 14px/1.4 system-ui, sans-serif; background: #eef3f1; color: #14213d; }
+  h1 { font-size: 16px; margin: 0 0 10px; }
+  label { display: block; margin-bottom: 8px; font-weight: 600; }
+  input, select { width: 100%; box-sizing: border-box; padding: 6px; margin-top: 3px; border: 1px solid #c9d5d0; border-radius: 4px; background: #fbfcfb; font-weight: 400; }
+  button { width: 100%; padding: 9px; border: 0; border-radius: 4px; background: #14213d; color: #fbfcfb; font-weight: 700; cursor: pointer; }
+  #band { font-size: 34px; font-weight: 800; margin: 12px 0 0; }
+  .LOW { color: #3e7c59 } .MEDIUM { color: #a8690f } .HIGH { color: #b42318 }
+  #challenge { font-weight: 700; border-left: 3px solid #3b4ba8; padding-left: 8px; }
+  #err { color: #b42318; }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid #3b4ba8; outline-offset: 2px; }
+</style>
+</head>
+<body>
+  <h1>TrustCheck Live Call Guard</h1>
+  <label>Backend <input id="api" value="http://localhost:8000"></label>
+  <label>Caller claims to be <select id="claimed"><option value="">Unknown</option></select></label>
+  <button id="toggle">Listen to this tab</button>
+  <p id="err"></p>
+  <div id="out" hidden>
+    <p id="band"></p>
+    <p id="summary"></p>
+    <p id="challenge" hidden></p>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

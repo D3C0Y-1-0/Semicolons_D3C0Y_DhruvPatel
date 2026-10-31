@@ -1,0 +1,95 @@
+"""Out-of-band verification + citizen bot over Telegram (stdlib only, long polling, no public URL needed).
+
+- Staff: /start in the bot replies with the chat id to paste into enrolment.
+- Verification: the real person gets YES/NO buttons; the answer updates the case.
+- Citizen mode: anyone can forward a voice note or text; the bot replies with a risk band.
+"""
+import json
+import os
+import tempfile
+import threading
+import time
+import urllib.request
+
+import db
+from detectors.identity import inr
+
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+API = f"https://api.telegram.org/bot{TOKEN}"
+
+
+def call(method, **params):
+    req = urllib.request.Request(f"{API}/{method}", json.dumps(params).encode(), {"Content-Type": "application/json"})
+    return json.load(urllib.request.urlopen(req, timeout=40)).get("result")
+
+
+def send_verification(case, person):
+    if not TOKEN:
+        raise RuntimeError("TELEGRAM_BOT_TOKEN not set")
+    if not person or not person.get("telegram_chat_id"):
+        raise RuntimeError("claimed person has no Telegram chat id enrolled")
+    r = case["result"]
+    amount = r.get("facts", {}).get("amount_inr")
+    text = (f"TrustCheck security check\n\nSomeone using your name ({person['name']}) just sent a request"
+            + (f" for {inr(amount)}" if amount else "") + f" via {r.get('channel') or 'an unknown channel'}.\n\n"
+            "Did YOU send this request?")
+    call("sendMessage", chat_id=person["telegram_chat_id"], text=text,
+         reply_markup={"inline_keyboard": [[{"text": "YES, it was me", "callback_data": f"v:{case['id']}:yes"},
+                                            {"text": "NO, not me", "callback_data": f"v:{case['id']}:no"}]]})
+
+
+def _on_callback(cq):
+    _, cid, ans = cq["data"].split(":")
+    status = "verified" if ans == "yes" else "confirmed_attack"
+    db.update_case(cid, status=status, result_patch={"verification": {"answer": ans, "at": time.time()}})
+    call("answerCallbackQuery", callback_query_id=cq["id"], text="Recorded. Thank you.")
+    call("editMessageText", chat_id=cq["message"]["chat"]["id"], message_id=cq["message"]["message_id"],
+         text="Recorded: " + ("you confirmed the request." if ans == "yes" else "NOT you. The payment is on hold and security has been alerted."))
+
+
+def _download(file_id):
+    path = call("getFile", file_id=file_id)["file_path"]
+    fd, local = tempfile.mkstemp(suffix=os.path.splitext(path)[1] or ".ogg")
+    with os.fdopen(fd, "wb") as f:
+        f.write(urllib.request.urlopen(f"https://api.telegram.org/file/bot{TOKEN}/{path}", timeout=60).read())
+    return local
+
+
+def _on_message(msg, analyze_fn):
+    chat = msg["chat"]["id"]
+    if msg.get("text", "").startswith("/start"):
+        call("sendMessage", chat_id=chat, text=f"Your chat id is {chat}. Enter it in TrustCheck enrolment.\n"
+             "Or forward me any suspicious voice note or message and I'll check it.")
+        return
+    media = msg.get("voice") or msg.get("audio") or msg.get("video_note") or msg.get("video")
+    local = _download(media["file_id"]) if media else None
+    try:
+        r = analyze_fn(local, msg.get("text") or msg.get("caption") or "")
+    finally:
+        if local:
+            os.remove(local)
+    hi = {"HIGH": "HIGH RISK / उच्च जोखिम", "MEDIUM": "MEDIUM RISK / मध्यम जोखिम", "LOW": "LOW RISK / कम जोखिम"}[r["band"]]
+    advice = ("Do not pay, share OTPs or stay on the call. Real police never 'digitally arrest' anyone. Report at cybercrime.gov.in or call 1930.\n"
+              "पैसे न भेजें, OTP न बताएं। असली पुलिस 'डिजिटल अरेस्ट' नहीं करती। 1930 पर कॉल करें।") if r["band"] != "LOW" else "No strong warning signs found. Still verify through a number you already know."
+    call("sendMessage", chat_id=chat, text=f"{hi} ({r['risk']:.0f}/100)\n\n{r['summary']}\n\n{advice}")
+
+
+def poll_forever(analyze_fn):
+    offset = 0
+    while True:
+        try:
+            for u in call("getUpdates", offset=offset, timeout=25) or []:
+                offset = u["update_id"] + 1
+                if "callback_query" in u and u["callback_query"].get("data", "").startswith("v:"):
+                    _on_callback(u["callback_query"])
+                elif "message" in u:
+                    _on_message(u["message"], analyze_fn)
+        except Exception as e:  # network blips must not kill the bot
+            print("telegram poll error:", e)
+            time.sleep(3)
+
+
+def start(analyze_fn):
+    if TOKEN:
+        threading.Thread(target=poll_forever, args=(analyze_fn,), daemon=True).start()
+        print("telegram bot polling")

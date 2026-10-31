@@ -1,0 +1,210 @@
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { api, form } from "../lib/api.js";
+
+export const BAND_TEXT = { LOW: "text-low", MEDIUM: "text-medium", HIGH: "text-high" };
+export const BAND_BORDER = { LOW: "border-low", MEDIUM: "border-medium", HIGH: "border-high" };
+const TACTIC = {
+  urgency: "urgency", secrecy: "secrecy", authority: "authority claim", payment_request: "payment request",
+  credential_request: "credential or OTP request", channel_switch: "channel switch", new_beneficiary: "new beneficiary",
+  fear_threat: "fear or legal threat", reward: "reward bait",
+};
+const HEADLINE = { HIGH: "Don't act on this yet.", MEDIUM: "Pause and verify first.", LOW: "Looks normal." };
+const STATUS = {
+  open: "Not verified yet",
+  verifying: "Waiting for the real person to answer on Telegram…",
+  verified: "The real person confirmed they sent it.",
+  confirmed_attack: "The real person says they did not send it. Treat this as an attack.",
+};
+
+export function Stamp({ band, risk, size = "text-7xl", className = "" }) {
+  const reduce = useReducedMotion();
+  return (
+    <motion.div key={band + Math.floor(risk)} className={`stamp inline-block px-4 pt-3 pb-2 ${size} ${BAND_TEXT[band]} ${className}`}
+      initial={reduce ? false : { scale: 1.7, opacity: 0, rotate: -12 }} animate={{ scale: 1, opacity: 1, rotate: -4 }}
+      transition={{ type: "spring", stiffness: 520, damping: 22, mass: 0.9 }}>
+      {band}
+      <span className="block text-[0.24em] font-bold leading-tight mt-1 tnum">risk {Math.floor(risk)} / 100</span>
+    </motion.div>
+  );
+}
+
+export function Waterfall({ rows, max }) {
+  const top = max ?? Math.max(3, ...rows.map((r) => Math.abs(r.contribution)));
+  const pct = (v) => `${(Math.min(Math.abs(v), top) / top) * 50}%`;
+  return (
+    <ul className="divide-y divide-rule border-y border-rule">
+      {rows.map((r) => (
+        <motion.li layout key={r.signal + r.label} transition={{ type: "spring", stiffness: 300, damping: 30 }}>
+          <details className="group py-2.5">
+            <summary className="grid grid-cols-[minmax(0,12rem)_1fr_3.75rem] items-center gap-3 cursor-pointer list-none">
+              <span className="text-sm font-medium truncate" title={r.label}>{r.label}</span>
+              <span className="relative h-3.5" aria-hidden>
+                <span className="absolute inset-y-0 left-1/2 w-px bg-ink/30" />
+                <motion.span className={`absolute inset-y-0 rounded-sm ${r.contribution > 0 ? "bg-high" : "bg-low"}`}
+                  style={r.contribution > 0 ? { left: "50%" } : { right: "50%" }}
+                  initial={{ width: 0 }} animate={{ width: pct(r.contribution) }} transition={{ type: "spring", stiffness: 160, damping: 24 }} />
+              </span>
+              <span className={`text-sm tnum text-right font-semibold ${r.contribution > 0 ? "text-high" : "text-low"}`}>
+                {r.contribution > 0 ? "+" : ""}{r.contribution.toFixed(2)}
+              </span>
+            </summary>
+            {r.why && (
+              <div className="mt-2 text-sm text-ink-soft space-y-1">
+                <p>{r.why} <span className="tnum">(score {r.score.toFixed(2)} × weight {r.weight})</span></p>
+                {r.evidence?.some((e) => e.img) && (
+                  <div className="flex gap-2 pt-1">{r.evidence.filter((e) => e.img).map((e) => (
+                    <figure key={e.t}><img src={e.img} alt={`Face at ${e.t}s`} className="w-20 h-20 rounded object-cover ring-2 ring-high/60" />
+                      <figcaption className="text-xs tnum mt-0.5">{e.t}s</figcaption></figure>))}
+                  </div>
+                )}
+                {r.evidence?.filter((e) => e.type !== "span" && !e.img).slice(0, 6).map((e, j) => (
+                  <p key={j} className="pl-3 border-l-2 border-rule">{e.field ? `${e.field}: ` : ""}{e.text}</p>
+                ))}
+              </div>
+            )}
+          </details>
+        </motion.li>
+      ))}
+    </ul>
+  );
+}
+
+export function Highlighted({ text, spans = [] }) {
+  if (!text) return null;
+  const parts = [];
+  let at = 0;
+  for (const s of [...spans].sort((a, b) => a.start - b.start)) {
+    if (s.start < at) continue;
+    parts.push(text.slice(at, s.start));
+    parts.push(
+      <mark key={s.start} title={TACTIC[s.tactic]} className="bg-transparent text-ink font-semibold underline decoration-high decoration-[3px] underline-offset-[5px]">
+        {text.slice(s.start, s.end)}
+      </mark>,
+    );
+    at = s.end;
+  }
+  parts.push(text.slice(at));
+  return <p className="whitespace-pre-wrap leading-[1.8] text-lg max-w-prose">{parts}</p>;
+}
+
+export function Waveform({ peaks = [], timeline = [], frames = [], duration }) {
+  if (!peaks.length && !timeline.length && !frames.length) return null;
+  const n = peaks.length || 200;
+  return (
+    <figure>
+      <svg viewBox={`0 0 ${n} 100`} preserveAspectRatio="none" className="w-full h-24 block" role="img" aria-label="Voice waveform with synthetic segments marked">
+        {timeline.filter((w) => w.p_fake >= 0.5).map((w, i) => (
+          <rect key={i} x={(w.start / duration) * n} width={((w.end - w.start) / duration) * n} y="0" height="100" fill="var(--color-high)" opacity={0.12 + 0.3 * w.p_fake} />
+        ))}
+        {peaks.map((p, i) => <line key={i} x1={i + 0.5} x2={i + 0.5} y1={50 - p * 46} y2={50 + p * 46} stroke="var(--color-ink)" strokeWidth="0.6" vectorEffect="non-scaling-stroke" />)}
+        {frames.map((f, i) => <circle key={"f" + i} cx={(f.t / duration) * n} cy="96" r="1.6" fill={f.p_fake >= 0.5 ? "var(--color-high)" : "var(--color-low)"} />)}
+      </svg>
+      <figcaption className="flex justify-between text-xs text-ink-soft mt-1 tnum">
+        <span>0s</span><span>Shaded red: voice sounds synthetic. Dots: face frames checked.</span><span>{Math.round(duration)}s</span>
+      </figcaption>
+    </figure>
+  );
+}
+
+export default function Verdict({ result: r, caseId, initialStatus = "open" }) {
+  const [status, setStatus] = useState(initialStatus);
+  const [msg, setMsg] = useState("");
+
+  useEffect(() => {
+    if (status !== "verifying") return;
+    const t = setInterval(async () => { const c = await api(`/cases/${caseId}`); if (c.status !== "verifying") setStatus(c.status); }, 2000);
+    return () => clearInterval(t);
+  }, [status, caseId]);
+
+  const run = async (fn) => { setMsg(""); try { await fn(); } catch (e) { setMsg(e.message); } };
+  const verify = () => run(async () => setStatus((await api(`/verify/${caseId}`, { method: "POST" })).status));
+  const decide = (answer) => run(async () => setStatus((await api(`/cases/${caseId}/decision`, { method: "POST", body: form({ answer }) })).status));
+  const download = () => run(async () => {
+    const text = await api(`/cases/${caseId}/report`);
+    Object.assign(document.createElement("a"), { href: URL.createObjectURL(new Blob([text], { type: "text/markdown" })), download: `cert-in-${caseId}.md` }).click();
+  });
+  const duration = r.duration || 1;
+
+  return (
+    <article className="space-y-10">
+      <header className="grid sm:grid-cols-[auto_1fr] gap-8 items-center">
+        <Stamp band={r.band} risk={r.risk} />
+        <div>
+          <p className="wide text-3xl font-extrabold leading-tight">{HEADLINE[r.band]}</p>
+          <ul className="mt-3 space-y-1.5 max-w-prose">
+            {[...r.signals.filter((x) => x.contribution > 0).slice(0, 4).map((x) => x.why), ...r.rules_fired.map((x) => "Policy: " + x)].map((w) => (
+              <li key={w} className="flex gap-2.5"><span aria-hidden className={`${BAND_TEXT[r.band]} font-bold`}>!</span><span>{w[0].toUpperCase() + w.slice(1)}</span></li>
+            ))}
+            {!r.signals.some((x) => x.contribution > 0) && <li>No strong warning signs in the voice, face, words or request.</li>}
+          </ul>
+          <p className="text-sm text-ink-soft mt-3">
+            {r.claimed_person ? `Claims to be ${r.claimed_person.name}${r.claimed_person.role ? `, ${r.claimed_person.role}` : ""}. ` : ""}
+            Asks for: {r.action.replace("_high", " (high value)").replace("_", " ")}.
+            {r.campaign && <span className="text-high font-semibold"> Same voice seen in {r.campaign.size - 1} earlier case{r.campaign.size > 2 ? "s" : ""}: likely a campaign.</span>}
+          </p>
+        </div>
+      </header>
+
+      <section className={`border-l-4 ${BAND_BORDER[r.band]} bg-sheet rounded-r p-5 space-y-4`}>
+        <h3 className="text-lg font-bold">What to do now</h3>
+        <ul className="space-y-1.5">{r.recommended_actions.map((a) => <li key={a} className="flex gap-2"><span aria-hidden className={BAND_TEXT[r.band]}>■</span>{a}</li>)}</ul>
+        {r.challenge && <p className="text-lg font-semibold border-l-4 border-stamp pl-3">On the call, try this: {r.challenge}</p>}
+        {caseId && (
+          <>
+            <AnimatePresence mode="wait">
+              <motion.p key={status} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} aria-live="polite"
+                className={`font-semibold ${status === "confirmed_attack" ? "text-high" : status === "verified" ? "text-low" : "text-ink-soft"}`}>{STATUS[status]}</motion.p>
+            </AnimatePresence>
+            <div className="flex flex-wrap gap-2">
+              {r.band !== "LOW" && <button onClick={verify} className="bg-stamp text-white px-4 py-2.5 rounded font-semibold hover:brightness-110">Ask the real person on Telegram</button>}
+              <button onClick={() => decide("yes")} className="border border-ink px-3 py-2.5 rounded hover:bg-paper">They confirmed it was them</button>
+              <button onClick={() => decide("no")} className="border border-high text-high px-3 py-2.5 rounded hover:bg-high/5">They didn't send it</button>
+              <button onClick={download} className="px-3 py-2.5 rounded underline underline-offset-4">Download CERT-In draft</button>
+            </div>
+            {msg && <p className="text-sm text-high">{msg}</p>}
+          </>
+        )}
+      </section>
+
+      {r.rules_fired.length > 0 && (
+        <section>
+          <h3 className="text-lg font-bold">Policy rules that set a minimum</h3>
+          <ul className="mt-2 space-y-1">{r.rules_fired.map((x) => <li key={x}>{x}</li>)}</ul>
+        </section>
+      )}
+
+      <section>
+        <h3 className="text-lg font-bold">Why this score</h3>
+        <p className="text-sm text-ink-soft mb-3 max-w-prose">
+          Right of the line pushes towards an attack; left is evidence it's genuine. Click a row for its evidence. The total is multiplied by the
+          impact of what's being asked ({r.impact} × for {r.action.replace("_high", " (high value)").replace("_", " ")}).
+        </p>
+        <Waterfall rows={r.signals.map((s) => ({ ...s }))} />
+      </section>
+
+      {(r.peaks?.length > 0 || r.frames?.length > 0) && (
+        <section>
+          <h3 className="text-lg font-bold mb-2">The recording</h3>
+          <Waveform peaks={r.peaks} timeline={r.timeline} frames={r.frames} duration={duration} />
+          {r.transcript?.text && <p className="mt-3 text-ink-soft max-w-prose"><span className="font-semibold text-ink">Heard ({r.transcript.language}):</span> {r.transcript.text}</p>}
+        </section>
+      )}
+
+      {r.message?.text && (
+        <section>
+          <h3 className="text-lg font-bold">The words, with manipulation underlined</h3>
+          {r.message.tactics?.length > 0 && <p className="text-sm text-ink-soft mb-3">Found {r.message.tactics.map((t) => TACTIC[t]).join(", ")}. Hover an underline to see which.</p>}
+          <div className="bg-sheet border border-rule rounded p-5"><Highlighted text={r.message.text} spans={r.message.highlights} /></div>
+        </section>
+      )}
+
+      {r.errors?.length > 0 && (
+        <details className="text-sm text-ink-soft">
+          <summary className="cursor-pointer">{r.errors.length} check{r.errors.length > 1 ? "s" : ""} couldn't run on this input</summary>
+          <ul className="list-disc pl-5 mt-1">{r.errors.map((e) => <li key={e}>{e}</li>)}</ul>
+        </details>
+      )}
+    </article>
+  );
+}

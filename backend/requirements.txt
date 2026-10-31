@@ -1,0 +1,22 @@
+# Install PyTorch first, matching your GPU (see README), then: pip install -r requirements.txt
+fastapi
+uvicorn[standard]
+python-multipart
+python-dotenv
+numpy
+huggingface_hub
+transformers==4.56.2        # GenD tested version
+# pellav2's downloaded script imports these at load time
+soundfile
+scipy
+pyloudnorm
+speechbrain>=1.0
+faster-whisper
+insightface                 # Windows: needs "Microsoft C++ Build Tools" to compile (see README)
+onnxruntime                 # or onnxruntime-gpu with CUDA
+opencv-python
+pillow
+c2pa-python
+anthropic                   # optional: LLM tactic tagging
+scikit-learn                # trained message classifier + eval/run_eval.py
+joblib

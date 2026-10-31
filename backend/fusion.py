@@ -1,0 +1,121 @@
+"""Risk fusion: log-odds evidence x impact of the request + hard policy rules.
+
+R = 100 * sigmoid(b + sum(w_i * logit(s_i))) * I, then rule floors.
+Run `python fusion.py` to check the three worked examples from the plan.
+"""
+import math
+
+PRIOR = 0.05  # assumed share of flagged communications that are attacks
+BIAS = math.log(PRIOR / (1 - PRIOR))  # -2.944
+
+# Starting weights from the plan. Refit with logistic regression on labelled scenarios (eval/).
+WEIGHTS = {
+    "audio_spoof": 1.0,
+    "voice_mismatch": 0.8,
+    "face_video": 0.8,
+    "face_mismatch": 0.6,
+    "lip_sync": 0.5,
+    "image_synthetic": 0.6,
+    "image_univfd": 0.7,
+    "message_tactics": 0.6,
+    "message_classifier": 0.4,
+    "context_anomaly": 1.0,
+    "lookalike_domain": 0.7,
+    "header_auth": 0.6,
+    "bad_url": 1.2,
+}
+
+IMPACT = {
+    "payment_high": 1.0,   # above approval limit, new beneficiary, gift cards, crypto
+    "credentials": 0.8,    # passwords, OTP, remote-access install
+    "payment": 0.7,        # within limit, known beneficiary
+    "information": 0.4,    # share internal docs or data
+    "none": 0.2,           # greeting, update, social
+}
+
+BANDS = [(60, "HIGH"), (30, "MEDIUM"), (0, "LOW")]
+FLOOR = {"HIGH": 60, "MEDIUM": 30}
+
+
+def logit(s):
+    s = min(max(s, 1e-4), 1 - 1e-4)
+    return math.log(s / (1 - s))
+
+
+def band_of(r):
+    return next(name for cut, name in BANDS if r >= cut)
+
+
+def rules(facts):
+    """Hard policy floors. Each returns (rule text, floor band) when it fires."""
+    fired = []
+    risky_action = facts.get("action") in ("payment", "payment_high", "credentials")
+    if risky_action and (facts.get("unregistered_channel") or facts.get("new_beneficiary")):
+        fired.append(("Payment or credential request from an unregistered channel or to a new beneficiary", "HIGH"))
+    if facts.get("bad_url"):
+        fired.append(("Link on a known phishing or malware list", "HIGH"))
+    if facts.get("digital_arrest"):
+        fired.append(("'Digital arrest' pattern: claims to be police/CBI/court and demands payment or staying on call", "HIGH"))
+    if facts.get("audio_both_high"):
+        fired.append(("Both audio models score the voice as synthetic (>= 0.9)", "MEDIUM"))
+    if facts.get("voice_mismatch_enrolled"):
+        fired.append(("Voice does not match the enrolled voiceprint of the claimed person", "MEDIUM"))
+    return fired
+
+
+def fuse(signals, action="none", facts=None):
+    """signals: list of {signal, score, ...}. Missing modalities are simply absent (no penalty)."""
+    facts = dict(facts or {}, action=action)
+    rows, total = [], 0.0
+    for s in signals:
+        if s.get("score") is None:  # detector unavailable
+            continue
+        w = WEIGHTS.get(s["signal"], 0.5)
+        c = w * logit(s["score"])
+        total += c
+        rows.append({**s, "weight": w, "contribution": round(c, 3)})
+
+    t = 1 / (1 + math.exp(-(BIAS + total)))
+    impact = IMPACT[action]
+    risk = 100 * t * impact
+    fired = rules(facts)
+    for _, floor in fired:
+        risk = max(risk, FLOOR[floor])
+
+    rows.sort(key=lambda r: -abs(r["contribution"]))
+    return {
+        "risk": round(risk, 1),
+        "band": band_of(risk),
+        "threat_probability": round(t, 4),
+        "impact": impact,
+        "action": action,
+        "prior_logodds": round(BIAS, 3),
+        "signals": rows,
+        "rules_fired": [r for r, _ in fired],
+    }
+
+
+def demo():
+    sig = lambda name, s: {"signal": name, "score": s}
+    # A: Arup-style fake CFO call + email asking for a wire
+    a = fuse([sig("audio_spoof", .88), sig("voice_mismatch", .85), sig("face_video", .74),
+              sig("message_tactics", .92), sig("context_anomaly", .90), sig("lookalike_domain", .95)],
+             action="payment_high", facts={"unregistered_channel": True})
+    assert a["risk"] == 99.9 and a["band"] == "HIGH", a
+    # B: same fake, harmless birthday message
+    b = fuse([sig("audio_spoof", .88), sig("voice_mismatch", .85), sig("face_video", .74),
+              sig("message_tactics", .10)], action="none")
+    assert b["risk"] == 9.8 and b["band"] == "LOW", b
+    # C: perfect fake fools every detector; maths says 17.3, Rule 1 lifts to HIGH
+    c_signals = [sig("audio_spoof", .30), sig("voice_mismatch", .20), sig("face_video", .40),
+                 sig("message_tactics", .92), sig("context_anomaly", .90)]
+    assert fuse(c_signals, action="payment_high")["risk"] == 17.3
+    c = fuse(c_signals, action="payment_high", facts={"unregistered_channel": True, "new_beneficiary": True})
+    assert c["risk"] == 60 and c["band"] == "HIGH" and c["rules_fired"], c
+    # unavailable detector is ignored, not penalised
+    assert fuse([{"signal": "audio_spoof", "score": None}])["risk"] == fuse([])["risk"]
+    print("fusion ok: A=99.9 HIGH, B=9.8 LOW, C=17.3 -> HIGH by rule")
+
+
+if __name__ == "__main__":
+    demo()

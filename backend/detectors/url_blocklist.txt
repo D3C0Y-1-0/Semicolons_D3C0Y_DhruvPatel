@@ -1,0 +1,2 @@
+# One hostname per line (known phishing domains). Demo entry:
+evil-login.example
