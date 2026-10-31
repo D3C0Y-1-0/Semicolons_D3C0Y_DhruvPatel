@@ -1,16 +1,16 @@
 # Demo run-sheet (4 minutes)
 
-Slides: `docs/TrustCheck_pitch.pptx` (11 slides, speaker notes on each). Pitch slides 1 to 4, then demo, then slides 9 to 11.
+Slides: `docs/TrustCheck_pitch.pptx` (11 slides in the site's glass style, speaker notes on each; each slide carries a "Criterion n of 5" pill). Pitch slides 1 to 8, then the demo, then slides 9 to 11.
 
 Mentoring round criteria (equal weight) and where each is answered:
 
 | Criterion | Slides | Show live |
 | --- | --- | --- |
-| Problem understanding | 2 (Arup, 41% of CISOs, digital arrest) | |
-| Proposed approach | 3, 4, 7 | Landing pipeline |
-| Technical feasibility | 5, 10 (one 6 GB GPU, 2.5 s per voice note) | Check with a voice note |
-| Innovation and creativity | 3, 5, 6, 8 (risk of acting, policy floors, challenges, Telegram, India) | Maths lab "A perfect fake" |
-| Current progress | 9, 10 | The full run below |
+| 1 Problem understanding | 2 (Arup US$25M, ₹1,935 cr digital arrest, 41% of CISOs, the PS ask) | |
+| 2 Proposed approach | 3 thesis, 4 five checks, 5 the maths (A, B, C) | Landing maths lab, "A perfect fake" |
+| 3 Technical feasibility | 8 (architecture; 5.5 GB on one 6 GB GPU, 2.5 s voice note, 4.5 s video, 1.2 s live update) | Check with a voice note |
+| 4 Innovation and creativity | 6 six differentiators, 7 Telegram verification loop | Ask the real person, tap NO |
+| 5 Current progress | 9 what works, 10 what's measured and the limits | The full run below |
 
 ## 30 minutes before
 
