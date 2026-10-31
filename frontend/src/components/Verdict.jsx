@@ -40,18 +40,17 @@ export function Stamp({ band, risk, size = "text-7xl", className = "" }) {
   );
 }
 
-// Scams spread by forward, so should the warning. Plus read-aloud for anyone who'd rather listen.
-function Share({ r }) {
+// Scammers call the family next, in the same name: email the family contacts from the Trust Graph. Plus read-aloud.
+function Share({ r, caseId }) {
   const [speaking, setSpeaking] = useState(false);
-  const [shared, setShared] = useState("");
-  const scam = r.scam_types?.[0];
-  if (r.band === "LOW" || !scam) return null;
-  const warning = `Scam alert: "${scam.label}" messages are going around. ${scam.advice} Never act on a message like this without checking. Report: 1930 / cybercrime.gov.in`;
-  const share = async () => {
-    try {
-      if (navigator.share) { await navigator.share({ title: "Scam alert", text: warning }); setShared("Shared"); }
-      else { await navigator.clipboard.writeText(warning); setShared("Copied: paste it in any chat"); }
-    } catch { /* share sheet closed */ }
+  const [family, setFamily] = useState(r.family_alert ? `Family alerted (${r.family_alert.to.length})` : "");
+  const [err, setErr] = useState("");
+  if (r.band === "LOW") return null;
+  const first = r.claimed_person?.name.split(" ")[0];
+  const alertFamily = async () => {
+    setErr("");
+    try { const d = await api(`/cases/${caseId}/family`, { method: "POST" }); setFamily(`Family alerted (${d.sent.length})`); }
+    catch (e) { setErr(e.message); }
   };
   const say = () => {
     const s = window.speechSynthesis;
@@ -62,9 +61,12 @@ function Share({ r }) {
     s.speak(u); setSpeaking(true);
   };
   return (
-    <div className="flex flex-wrap gap-2">
-      <button type="button" onClick={share} className="bg-night text-white rounded-full px-4 py-2 text-sm font-semibold">{shared || "Share warning with family"}</button>
+    <div className="flex flex-wrap items-center gap-2">
+      {caseId && r.claimed_person?.family > 0 && (
+        <button type="button" onClick={alertFamily} disabled={!!family} className="bg-night text-white rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-70">
+          {family || `Email alert to ${first}'s family`}</button>)}
       <button type="button" onClick={say} className="bg-white/80 border border-white rounded-full px-4 py-2 text-sm font-semibold">{speaking ? "Stop" : "Read it out loud"}</button>
+      {err && <p className="w-full text-sm text-high">{err}</p>}
     </div>
   );
 }
@@ -193,7 +195,7 @@ export default function Verdict({ result: r, caseId, initialStatus = "open" }) {
         {r.hold_until && caseId && <HoldLock until={r.hold_until} status={status} />}
         <h3 className="text-xl font-bold">What to do now</h3>
         <ul className="space-y-2">{r.recommended_actions.map((a) => <li key={a} className="flex gap-3 items-start"><span aria-hidden className={`mt-2 size-2 rounded-full shrink-0 ${r.band === "LOW" ? "bg-low" : r.band === "MEDIUM" ? "bg-medium" : "bg-high"}`} />{a}</li>)}</ul>
-        <Share r={r} />
+        <Share r={r} caseId={caseId} />
         {r.challenge && <p className="text-lg font-semibold rounded-2xl bg-night text-white px-5 py-4">On the call, try this: {r.challenge}</p>}
         {r.band !== "LOW" && r.claimed_person && (status === "open" || status === "verifying") && <CodeWordCheck person={r.claimed_person} />}
         {caseId && (

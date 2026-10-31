@@ -3,6 +3,7 @@ import asyncio
 import datetime as dt
 import os
 import random
+import re
 import shutil
 import tempfile
 import time
@@ -118,7 +119,8 @@ def run_analysis(media_path=None, text="", eml_bytes=None, claimed_id=None, chan
     result = fusion.fuse(signals, facts.get("action", "none"), facts)
     result |= {"summary": "", "facts": facts, "channel": channel, "sender": sender, "errors": errors,
                "claimed_person": {"id": person["id"], "name": person["name"], "role": person.get("role"),
-                                  "telegram": bool(person.get("telegram_chat_id"))} if person else None,
+                                  "telegram": bool(person.get("telegram_chat_id")),
+                                  "family": len(person.get("family_emails") or [])} if person else None,
                "message": info, "identifiers": identifiers, "scam_types": info.get("scam_types", []), **extra}
     # spec 7: even a LOW verdict badges media that looks synthetic (weak "no provenance" metadata doesn't count)
     result["synthetic_media"] = any((s["score"] or 0) >= (0.9 if s["signal"] == "image_synthetic" else 0.5)
@@ -130,7 +132,7 @@ def run_analysis(media_path=None, text="", eml_bytes=None, claimed_id=None, chan
                                          "Don't forward or rely on this media as genuine: it looks AI-generated or manipulated"]
     if result["scam_types"] and result["band"] != "LOW":  # say what this scam is and the one thing that beats it
         result["recommended_actions"] = list(dict.fromkeys(t["advice"] for t in result["scam_types"]))[:2] + ACTIONS[result["band"]][:1] + [
-            "Warn family and colleagues: share the warning below"]
+            "Tell family: scammers often call them next with the same story"]
     if facts.get("digital_arrest"):
         result["recommended_actions"] = ["Hang up. Real police, CBI or courts never arrest anyone over a video call",
                                          "Don't pay or share any OTP, even 'for verification'",
@@ -206,12 +208,15 @@ def stats():
 
 @app.post("/enroll")
 async def enroll(id: str = Form(None), name: str = Form(...), role: str = Form(""), email: str = Form(""), phone: str = Form(""),
-                 telegram_chat_id: str = Form(""), channels: str = Form("email"), work_start: int = Form(9),
+                 telegram_chat_id: str = Form(""), family_emails: str = Form(""), channels: str = Form("email"), work_start: int = Form(9),
                  work_end: int = Form(19), approval_limit: float = Form(0), usual_requests: str = Form("information"),
                  voice: UploadFile = File(None), photo: UploadFile = File(None)):
     name, role, email, phone, telegram_chat_id = (v.strip() for v in (name, role, email, phone, telegram_chat_id))
     if not (0 <= work_start <= 23 and 0 <= work_end <= 23):
         raise HTTPException(400, "Working hours must be between 0 and 23.")
+    family = [e.lower() for e in re.split(r"[,\s]+", family_emails) if e]
+    if len(family) > 2 or not all(re.fullmatch(r"[^@\s]+@[^@\s]+\.[a-z]{2,}", e) for e in family):
+        raise HTTPException(400, "Family emails: up to two valid addresses, separated by a comma.")
     if approval_limit < 0:
         raise HTTPException(400, "Approval limit can't be negative.")
     voice_emb = face_emb = None
@@ -232,7 +237,7 @@ async def enroll(id: str = Form(None), name: str = Form(...), role: str = Form("
     split = lambda s: [x.strip().lower() for x in s.split(",") if x.strip()]
     pid = db.add_person(id=id or None, name=name, role=role, email=email, phone=phone, telegram_chat_id=telegram_chat_id,
                         channels=split(channels), work_start=work_start, work_end=work_end,
-                        approval_limit=approval_limit, usual_requests=split(usual_requests),
+                        approval_limit=approval_limit, usual_requests=split(usual_requests), family_emails=family,
                         voice_emb=voice_emb, face_emb=face_emb)
     p = db.get_person(pid)
     return {"id": pid, "voice_enrolled": bool(p["voice_emb"]), "face_enrolled": bool(p["face_emb"])}
@@ -267,8 +272,6 @@ def send_verify(cid: str):
     if not person:
         raise HTTPException(400, "This message doesn't name anyone in the Trust Graph, so there's nobody to ask. "
                                  "Call the person it claims to be on a number you already know.")
-    if not (person.get("email") or person.get("telegram_chat_id")):
-        raise HTTPException(400, f"{person['name']} has no email or Telegram in the Trust Graph. Add one, or show them the QR code.")
     out = notify.deliver(person, "TrustCheck: did you send this request?", notify.request_text(c, person))
     out["link"] = notify.case_link(c, person["id"])
     if person.get("telegram_chat_id") and verify.TOKEN:
@@ -277,7 +280,21 @@ def send_verify(cid: str):
             out["sent"].append("telegram")
         except Exception as e:
             out["errors"].append(f"telegram failed: {e}")
-    return {**db.update_case(cid, status="verifying"), "delivery": out}
+    case = db.update_case(cid, status="verifying")
+    if person.get("family_emails"):
+        notify.alert_if_silent(cid)  # no YES / NO within FAMILY_ALERT_AFTER seconds: the family is told it's a scam
+        out["family_after"] = notify.FAMILY_AFTER
+    return {**case, "delivery": out}
+
+
+@app.post("/cases/{cid}/family")
+def alert_family(cid: str):
+    """Email the claimed person's family contacts that someone is impersonating them."""
+    c, p = _case_person(cid)
+    out = notify.family_alert(c, p)
+    if not out["sent"]:
+        raise HTTPException(400, "; ".join(out["errors"]))
+    return out
 
 
 @app.post("/cases/{cid}/decision")

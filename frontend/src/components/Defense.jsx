@@ -26,22 +26,18 @@ export function HoldLock({ until, status }) {
   );
 }
 
-// Email (sent by itself when SMTP is set up, else one tap), a QR for someone in the room, or copy into any app. Email may already have gone out by itself.
+// Email (sent by itself when SMTP is set up, else one tap) and a QR for someone in the room.
 export function SendLinks({ delivery, who, qr, qrLabel }) {
-  const [copied, setCopied] = useState(false);
   if (!delivery) return null;
-  const { sent = [], errors = [], links = {}, text } = delivery;
-  const copy = async () => { try { await navigator.clipboard.writeText(text); setCopied(true); } catch { /* clipboard blocked: the buttons still work */ } };
+  const { sent = [], errors = [], links = {} } = delivery;
   const btn = "bg-white border border-white rounded-full px-4 py-2 text-sm font-semibold hover:bg-white/70";
   return (
     <div className="rounded-[1.5rem] bg-white/70 border border-white p-5 flex flex-wrap gap-5 items-center">
       <div className="flex-1 min-w-56 space-y-3">
         {sent.length > 0 && <p className="font-semibold text-low">Sent to {who} by {sent.join(" and ")}.</p>}
-        <p className="text-sm text-ink-soft">{sent.length ? "Send it on another channel too:" : `Send it to ${who}'s registered email, or copy it into any app. The message is ready:`}</p>
-        <div className="flex flex-wrap gap-2">
-          {links.email && !sent.includes("email") && <a href={links.email} className={btn}>Email</a>}
-          <button type="button" onClick={copy} className={btn}>{copied ? "Copied" : "Copy message"}</button>
-        </div>
+        {!sent.length && <p className="text-sm text-ink-soft">{links.email ? `Email it to ${who}'s registered address, or let ${who} scan the code:` : `${who} has no email in the Trust Graph. Let ${who} scan the code:`}</p>}
+        {links.email && !sent.includes("email") && <a href={links.email} className={btn}>Email</a>}
+        {delivery.family_after && <p className="text-sm font-semibold text-high">No answer from {who} within {delivery.family_after} s and the family gets an email that this is a scam.</p>}
         {errors.map((e) => <p key={e} className="text-xs text-high">{e}</p>)}
       </div>
       {qr && <figure className="text-center"><img src={`${API}/qr?data=${encodeURIComponent(qr)}`} alt={qrLabel} className="size-36 rounded-xl" />
