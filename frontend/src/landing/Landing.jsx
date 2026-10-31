@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { lazy, Suspense, useState } from "react";
+import Dock from "../components/Dock.jsx";
 import Icon from "../components/Icons.jsx";
 import MathsLab from "./MathsLab.jsx";
 import PhoneVerify from "./PhoneVerify.jsx";
@@ -28,25 +29,12 @@ const PIPELINE = [
   ["Verify", "Before anything moves, the real person confirms on the phone they enrolled. A NO holds the payment.", "Telegram YES/NO, payment hold, CERT-In draft, campaign clustering"],
 ];
 
-const RAIL = [["home", "Home", "#/"], ["check", "Check a message", "#/app/check"], ["live", "Live call", "#/app/live"], ["queue", "Security queue", "#/app/cases"], ["people", "Trust Graph", "#/app/people"]];
-
-function Rail() {
-  return (
-    <nav aria-label="Sections" className="glass rounded-full p-1.5 flex flex-col gap-1.5">
-      {RAIL.map(([icon, label, href], i) => (
-        <a key={icon} href={href} title={label} aria-label={label}
-          className={`orb size-11 ${i === 0 ? "bg-night text-white" : "bg-white/70 text-ink hover:bg-white"}`}><Icon name={icon} /></a>
-      ))}
-    </nav>
-  );
-}
-
 function Hero() {
   const [phase, setPhase] = useState("scanning");
   const call = CALL[phase];
   const hot = phase !== "scanning";
   return (
-    <section className="relative min-h-[100svh] px-3 sm:px-6 pt-16 pb-16 flex flex-col">
+    <section className="relative min-h-[100svh] px-3 sm:px-6 pt-16 pb-28 lg:pb-24 flex flex-col">
       {/* outer corners, like a print */}
       <div className="absolute inset-x-4 sm:inset-x-8 top-4 flex justify-between text-sm sm:text-base">
         <a href="#/" className="text-xl font-extrabold tracking-tight">TrustCheck</a>
@@ -60,8 +48,8 @@ function Hero() {
 
         {/* top bar: what this call claims */}
         <div className="relative z-10 flex items-start justify-between gap-3 p-3 sm:p-5">
-          <a href="#/app/check" className="glass-strong rounded-full pl-5 pr-2 py-2 font-semibold hidden sm:inline-flex items-center gap-3">
-            Check a message<span className="orb size-8 bg-night text-white"><Icon name="arrow" className="size-4" /></span>
+          <a href="#how" className="glass-strong rounded-full pl-5 pr-2 py-2 font-semibold hidden sm:inline-flex items-center gap-3">
+            How it works<span className="orb size-8 bg-night text-white"><Icon name="arrow" className="size-4" /></span>
           </a>
           <dl className="glass-strong rounded-full px-5 py-2.5 hidden md:flex gap-7 text-sm">
             {[["phone", "Arrived via", "WhatsApp video"], ["user", "Claims to be", "Rajesh Kumar, CFO"], ["rupee", "Asking for", "₹45,00,000"]].map(([ic, k, v]) => (
@@ -76,8 +64,6 @@ function Hero() {
           </a>
         </div>
 
-        <div className="absolute left-3 sm:left-5 top-1/2 -translate-y-1/2 z-10 hidden sm:block"><Rail /></div>
-
         <motion.h1 className="relative z-[5] text-center text-white font-semibold tracking-[-0.04em] leading-[0.92] px-4 mt-4 sm:mt-6 text-[clamp(2.4rem,6.3vw,6.6rem)] drop-shadow-[0_2px_30px_rgb(35_22_94/0.25)]"
           initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, ease: [0.2, 0.8, 0.2, 1] }}>
           <span className={`block opacity-90 ${phase === "flagging" ? "glitching" : ""}`}>The voice sounds like your CFO.</span>
@@ -85,7 +71,7 @@ function Hero() {
         </motion.h1>
 
         {/* bottom-left: the pitch, with a cut-out corner */}
-        <div className="absolute z-10 left-0 bottom-0 w-[min(26rem,100%)] glass-strong rounded-tr-[2.75rem] p-6 sm:p-7 hidden sm:block">
+        <div className="absolute z-10 left-0 bottom-0 w-[min(26rem,100%)] glass-strong rounded-tr-[2.75rem] p-6 sm:p-7 hidden lg:block">
           <h2 className="text-xl font-bold">Check before you act</h2>
           <p className="mt-2 text-sm text-ink-soft leading-relaxed">TrustCheck checks the voice, the face, the words and what's actually being asked, then makes you verify with the real person before money or data moves.</p>
           <div className="mt-5 flex items-end justify-between gap-4">
@@ -95,7 +81,7 @@ function Hero() {
         </div>
 
         {/* right: the call being scanned, live */}
-        <div className="absolute z-10 right-3 sm:right-5 bottom-3 sm:bottom-5 w-[min(21rem,calc(100%-1.5rem))] glass rounded-[2rem] p-5 sm:p-6">
+        <div className="absolute z-10 right-3 sm:right-5 bottom-24 lg:bottom-5 w-[min(21rem,calc(100%-1.5rem))] glass rounded-[2rem] p-5 sm:p-6">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-lg font-bold leading-tight">Incoming: Rajesh Kumar</p>
@@ -119,9 +105,9 @@ function Hero() {
         </div>
       </div>
 
-      <div className="absolute inset-x-4 sm:inset-x-8 bottom-3 flex justify-between items-center text-sm sm:text-base">
-        <span className="font-semibold text-ink-soft hidden sm:inline">PS 02: deepfake-enabled social engineering</span>
-        <a href="#problem" className="ml-auto border border-ink/40 rounded-full px-5 py-1.5 font-semibold hover:bg-white/50">Scroll down</a>
+      <div className="absolute inset-x-4 sm:inset-x-8 bottom-8 flex justify-between items-center text-sm sm:text-base">
+        <span className="font-semibold text-ink-soft hidden lg:inline">PS 02: deepfake-enabled social engineering</span>
+        <a href="#problem" className="ml-auto border border-ink/40 rounded-full px-5 py-1.5 font-semibold hover:bg-white/50 hidden lg:inline-block">Scroll down</a>
       </div>
     </section>
   );
@@ -136,8 +122,9 @@ const Panel = ({ id, className = "", children }) => (
 
 export default function Landing() {
   return (
-    <div className="pb-10">
+    <div className="pb-28">
       <Hero />
+      <Dock current="home" />
 
       <Panel id="problem" className="bg-white/60 backdrop-blur-xl">
         <div className="p-6 sm:p-12 lg:p-16 grid lg:grid-cols-[1fr_1.3fr] gap-10 lg:gap-16">
