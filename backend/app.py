@@ -191,6 +191,10 @@ async def enroll(id: str = Form(None), name: str = Form(...), role: str = Form("
                  telegram_chat_id: str = Form(""), channels: str = Form("email"), work_start: int = Form(9),
                  work_end: int = Form(19), approval_limit: float = Form(0), usual_requests: str = Form("information"),
                  voice: UploadFile = File(None), photo: UploadFile = File(None)):
+    if not (0 <= work_start <= 23 and 0 <= work_end <= 23):
+        raise HTTPException(400, "Working hours must be between 0 and 23.")
+    if approval_limit < 0:
+        raise HTTPException(400, "Approval limit can't be negative.")
     voice_emb = face_emb = None
     vp, pp = await _save(voice), await _save(photo)
     try:

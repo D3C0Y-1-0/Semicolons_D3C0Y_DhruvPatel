@@ -60,7 +60,7 @@ export default function People() {
         {input("telegram_chat_id", "Telegram chat id", { placeholder: "They send /start to the bot to get it", defaultValue: edit?.telegram_chat_id })}
         {input("channels", "Channels they use for work", { defaultValue: edit?.channels?.join(",") ?? "email,teams" })}
         {input("usual_requests", "Requests they normally make", { defaultValue: edit?.usual_requests?.join(",") ?? "information" })}
-        <div className="grid grid-cols-2 gap-3">{input("work_start", "Day starts", { type: "number", defaultValue: edit?.work_start ?? 9 })}{input("work_end", "Day ends", { type: "number", defaultValue: edit?.work_end ?? 19 })}</div>
+        <div className="grid grid-cols-2 gap-3">{input("work_start", "Day starts (hour, 0–23)", { type: "number", min: 0, max: 23, step: 1, required: true, defaultValue: edit?.work_start ?? 9 })}{input("work_end", "Day ends (hour, 0–23)", { type: "number", min: 0, max: 23, step: 1, required: true, defaultValue: edit?.work_end ?? 19 })}</div>
         <label className="block text-sm font-semibold">Voice sample, 20–60 s{edit?.voice_enrolled && " (leave empty to keep the saved one)"}<input name="voice" type="file" accept="audio/*" className="block mt-1 font-normal" /></label>
         <label className="block text-sm font-semibold">Face photo{edit?.face_enrolled && " (leave empty to keep the saved one)"}<input name="photo" type="file" accept="image/*" className="block mt-1 font-normal" /></label>
         <button disabled={busy} className="w-full bg-night text-white font-bold py-3.5 rounded-full disabled:opacity-60">{busy ? "Saving…" : edit ? "Save changes" : "Enrol"}</button>
