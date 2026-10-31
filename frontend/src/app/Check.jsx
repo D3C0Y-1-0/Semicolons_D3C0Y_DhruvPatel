@@ -19,8 +19,8 @@ function DropZone({ file, setFile }) {
       className={`rounded-[10px] border border-dashed px-4 py-3.5 transition-colors ${over ? "border-night bg-night/5" : "border-ink/20 bg-[#faf9fd]"}`}>
       {!file ? (
         <button type="button" onClick={() => input.current.click()} className="w-full text-left">
-          <span className="font-semibold block">Add a voice note, video or image</span>
-          <span className="text-[12.5px] text-ink-soft">Drop it here or click. WhatsApp .opus, .mp3, .mp4, .jpg all work.</span>
+          <span className="font-semibold block">Add a screenshot, voice note or video</span>
+          <span className="text-[12.5px] text-ink-soft">Drop it here or click. A screenshot of the chat is read as text; .opus, .mp3, .mp4, .jpg all work.</span>
         </button>
       ) : (
         <div className="space-y-2">

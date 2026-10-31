@@ -38,7 +38,7 @@ No GPU? In `.env` set `WHISPER_SIZE=small` and `VIDEO_FRAMES=8`, and `pip instal
 
 No `winget`? Skip ffmpeg: the backend falls back to the binary bundled with `imageio-ffmpeg` (in requirements).
 
-On a 6 GB GPU (tested: RTX 4050 laptop) every model fits at once: pellav2, GenD and UnivFD run in fp16, InsightFace runs on CUDA through `onnxruntime-gpu==1.23.2` (newer PyPI builds need CUDA 13, torch here is CUDA 12). Warm timings: a 20 s voice note about 2.5 s, a 20 s video call about 4.5 s. The first check after starting the backend loads the models and takes about a minute.
+On a 6 GB GPU (tested: RTX 4050 laptop) every model fits at once: pellav2, GenD and UnivFD run in fp16, InsightFace runs on CUDA through `onnxruntime-gpu==1.23.2` (newer PyPI builds need CUDA 13, torch here is CUDA 12). Warm timings: a 20 s voice note about 2.5 s, a 20 s video call about 4.5 s. The backend now loads every model in the background at startup (about 1.5 min; the console sidebar shows "Models: warming up… / ready"), so the first check on stage takes about 13 s instead of 1-2 min. `WARMUP=0` skips it for quick restarts while editing code.
 
 ## 2. Check that everything works
 
@@ -138,6 +138,7 @@ After that, hard policy rules set a minimum. For example, a payment request from
 | Scam type (17 patterns: KYC, parcel, challan, lottery, job, investment, loan app, APK, remote access, UPI refund, OTP takeover, sextortion, romance, family emergency, ID harvesting, CEO fraud, digital arrest) | topic + hook regexes, EN/Hinglish | detectors/message.py |
 | Link intelligence | short-link expansion (one hop), fake bank/brand domains, .apk, bare IP, punycode, throwaway TLDs, domain age via RDAP | detectors/message.py |
 | QR codes in images | OpenCV decoder; "scan to receive money" UPI QRs | app.py |
+| Screenshots of chats and SMS | RapidOCR (offline, GPU runtime); the text runs through every message check, photo forensics skipped | app.py |
 | Channel, hours, limits, usual requests | Org Trust Graph (SQLite) | detectors/identity.py |
 
 ## 6. Not built yet (in priority order)

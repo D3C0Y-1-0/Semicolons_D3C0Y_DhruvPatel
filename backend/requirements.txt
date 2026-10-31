@@ -21,3 +21,5 @@ c2pa-python
 anthropic                   # optional: LLM tactic tagging
 scikit-learn                # trained message classifier + eval/run_eval.py
 joblib
+# screenshot OCR: install WITHOUT deps, its dependency list would pull CPU onnxruntime over onnxruntime-gpu
+#   pip install --no-deps rapidocr-onnxruntime==1.4.4 && pip install pyclipper shapely six pyyaml

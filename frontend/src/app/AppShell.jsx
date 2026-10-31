@@ -53,6 +53,7 @@ export default function AppShell({ page }) {
   const highOpen = Math.min(stats?.bands?.HIGH ?? 0, open + (stats?.status?.verifying ?? 0));
   const status = [
     ["Backend", health ? true : health === false ? false : null, health ? "online" : health === false ? "offline" : "…"],
+    ["Models", health ? (health.models === "ready" ? true : null) : null, health?.models === "ready" ? "ready" : health?.models === "warming" ? "warming up…" : health ? "load on first use" : "…"],
     ["Email", health ? !!health.email : null, health?.email ? "sends itself" : "off"],
     ["Telegram", health ? !!health.telegram : null, health?.telegram ? "on" : "off"],
   ];

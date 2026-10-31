@@ -5,6 +5,7 @@ import os
 import random
 import shutil
 import tempfile
+import threading
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -55,6 +56,22 @@ def challenge():
     return f"Ask them to repeat: '{' '.join(random.sample(PHRASE_WORDS, 3))}'" if c == "phrase" else c
 
 
+_ocr = []
+
+
+def screenshot_text(path):
+    """Text in a screenshot (forwarded WhatsApp/SMS scams), read offline with RapidOCR on the GPU runtime. '' if none."""
+    try:
+        import cv2
+        if not _ocr:
+            from rapidocr_onnxruntime import RapidOCR
+            _ocr.append(RapidOCR())
+        res, _ = _ocr[0](cv2.imread(path))
+        return "\n".join(r[1] for r in res or [] if r[2] >= 0.5)
+    except Exception:  # OCR not installed or unreadable image: fall back to the image checks
+        return ""
+
+
 def qr_codes(path):
     """Decoded QR payloads in an image (OpenCV, already installed for the face models)."""
     import cv2
@@ -96,8 +113,13 @@ def run_analysis(media_path=None, text="", eml_bytes=None, claimed_id=None, chan
             signals += v["signals"]; errors += v["errors"]; face_emb = v["face_emb"]; extra["frames"] = v["frames"]
             extra.setdefault("duration", max([f["t"] for f in v["frames"]], default=0) + 1)
         if ext in IMAGE_EXT:
-            im = image.analyze(media_path)
-            signals += im["signals"]; errors += im["errors"]; face_emb = im["face_emb"]
+            shot = screenshot_text(media_path)
+            if len(shot) >= 40:  # a screenshot of a chat or SMS: read the scam; AI-image forensics on app pixels would only raise false alarms
+                extra["screenshot_text"] = shot
+                text = (text + "\n" if text else "") + shot
+            else:
+                im = image.analyze(media_path)
+                signals += im["signals"]; errors += im["errors"]; face_emb = im["face_emb"]
             extra["qr"] = qr_codes(media_path)  # "scan to receive money" QR scams: the payload goes through the text checks
             if extra["qr"]:
                 text = (text + "\n" if text else "") + "\n".join("QR code: " + q for q in extra["qr"])
@@ -155,10 +177,32 @@ def citizen_analyze(path, text):
     return finish(run_analysis(path, text, channel="telegram"))
 
 
+WARM = {"state": "cold", "seconds": None, "failed": []}
+
+
+def warm_up():
+    """Load every model once at startup, so the first voice or video check on stage isn't the slow one."""
+    from detectors import audio, image, video
+    WARM["state"], t0 = "warming", time.time()
+    for name, load in [("voice-clone detector", audio.pellav2), ("voiceprint", audio.ecapa),
+                       ("transcriber", lambda: audio.whisper(audio.WHISPER_SIZE, audio.WHISPER_DEVICE)),
+                       ("face finder", video.face_app), ("face-swap detector", video.gend), ("AI-image detector", image.univfd),
+                       ("message classifier", message._clf),
+                       ("screenshot reader", lambda: screenshot_text(os.path.join(os.path.dirname(__file__), "models", "warmup.png")))]:
+        try:
+            load()
+        except Exception as e:  # a missing model only switches its signal off; the app keeps working
+            WARM["failed"].append(f"{name}: {e}")
+    WARM["state"], WARM["seconds"] = "ready", round(time.time() - t0)
+    print(f"models warm in {WARM['seconds']} s" + (f", unavailable: {WARM['failed']}" if WARM["failed"] else ""), flush=True)
+
+
 @asynccontextmanager
 async def lifespan(_):
     db.conn().close()
     verify.start(citizen_analyze)
+    if os.getenv("WARMUP", "1") != "0":  # WARMUP=0 for a quick backend restart while editing code
+        threading.Thread(target=warm_up, daemon=True).start()
     yield
 
 
@@ -179,7 +223,7 @@ async def _save(upload):
 @app.get("/health")
 def health():
     return {"ok": True, "telegram": bool(verify.TOKEN), "llm": bool(os.getenv("ANTHROPIC_API_KEY")),
-            "email": notify.smtp_ready(), "public_url": notify.public_url()}
+            "email": notify.smtp_ready(), "public_url": notify.public_url(), "models": WARM["state"]}
 
 
 @app.post("/analyze")
