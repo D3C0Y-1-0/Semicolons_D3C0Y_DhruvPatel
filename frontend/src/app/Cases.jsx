@@ -39,7 +39,7 @@ export default function Cases() {
     <div className="space-y-10">
       <div>
         <h2 className="text-5xl font-bold tracking-[-0.04em]">Security queue</h2>
-        <p className="text-ink-soft mt-2">Every check lands here. It refreshes every few seconds, so a NO from the real person (SMS, email, QR or Telegram) shows up while you watch.</p>
+        <p className="text-ink-soft mt-2">Every check lands here. It refreshes every few seconds, so a NO from the real person (email, QR or Telegram) shows up while you watch.</p>
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {tiles.map(([k, n, label, color]) => (

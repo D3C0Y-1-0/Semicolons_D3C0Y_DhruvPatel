@@ -71,9 +71,9 @@ npm run dev                      # landing: http://localhost:5173  console: http
 
 **Chrome extension.** Open `chrome://extensions`, turn on Developer mode, click "Load unpacked" and choose the `extension` folder. Open the call tab, click the TrustCheck icon, then "Listen to this tab". If the extension fails at the venue, the dashboard's **Live call** page does the same job through tab sharing.
 
-**Out-of-band verification: SMS, email, QR (no app, no paid API).**
+**Out-of-band verification: email and QR (no app, no paid API).**
 "Ask the real person" sends a signed link to the person's *registered* number or email from the Trust Graph, never to the number the request came from. They open it on any phone and tap YES or NO.
-- SMS: one tap opens the message pre-filled on your phone (`sms:` link). On a laptop use Copy message. Free.
+- No WhatsApp or SMS links on purpose: both depend on the presenting device. "Copy message" pastes into any app.
 - Email: sent automatically when `SMTP_USER` / `SMTP_PASS` are in `.env` (a Gmail app password works).
 - In the room: the verdict shows a QR code; the real person scans it and answers.
 - Code word: on **Trust Graph**, "Send their code-word page" gives each person a page with their 30-second code word (add it to the home screen).

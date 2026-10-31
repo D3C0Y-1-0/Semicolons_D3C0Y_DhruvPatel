@@ -258,7 +258,7 @@ def case(cid: str):
 
 @app.post("/verify/{cid}")
 def send_verify(cid: str):
-    """Ask the real person, out of band: email goes out by itself, SMS comes back as a one-tap link, plus a QR."""
+    """Ask the real person, out of band: email goes out by itself (or one-tap mailto), plus a QR."""
     c = db.get_case(cid)
     if not c:
         raise HTTPException(404)
@@ -267,8 +267,8 @@ def send_verify(cid: str):
     if not person:
         raise HTTPException(400, "This message doesn't name anyone in the Trust Graph, so there's nobody to ask. "
                                  "Call the person it claims to be on a number you already know.")
-    if not (person.get("phone") or person.get("email") or person.get("telegram_chat_id")):
-        raise HTTPException(400, f"{person['name']} has no phone, email or Telegram in the Trust Graph. Add one first.")
+    if not (person.get("email") or person.get("telegram_chat_id")):
+        raise HTTPException(400, f"{person['name']} has no email or Telegram in the Trust Graph. Add one, or show them the QR code.")
     out = notify.deliver(person, "TrustCheck: did you send this request?", notify.request_text(c, person))
     out["link"] = notify.case_link(c, person["id"])
     if person.get("telegram_chat_id") and verify.TOKEN:
@@ -298,7 +298,7 @@ def _case_person(cid):
 
 @app.get("/v/{cid}", response_class=HTMLResponse)
 def verify_page(cid: str, t: str = ""):
-    """The page the real person opens from SMS, email or the QR code."""
+    """The page the real person opens from the email or the QR code."""
     c, p = _case_person(cid)
     if not notify.signed(p["id"], "v:" + cid, t):
         raise HTTPException(403, "This link isn't valid.")
@@ -333,7 +333,7 @@ def me_code(pid: str, t: str = ""):
 
 @app.post("/people/{pid}/invite")
 def invite(pid: str):
-    """Send someone their personal code-word page once, over SMS or email, or as a QR code."""
+    """Send someone their personal code-word page once, by email or as a QR code."""
     p = db.get_person(pid)
     if not p:
         raise HTTPException(404)
