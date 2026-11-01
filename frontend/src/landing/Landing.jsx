@@ -1,11 +1,11 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { lazy, Suspense, useState } from "react";
+import { useState } from "react";
 import Dock from "../components/Dock.jsx";
 import Icon from "../components/Icons.jsx";
 import MathsLab from "./MathsLab.jsx";
 import PhoneVerify from "./PhoneVerify.jsx";
 
-const Spectrogram3D = lazy(() => import("../components/Spectrogram3D.jsx"));
+import DuskScene from "../components/DuskScene.jsx";
 
 // What the floating call card says as the scan crosses the voice
 const CALL = {
@@ -42,9 +42,7 @@ function Hero() {
       </div>
 
       <div className="frame dusk relative flex-1 max-w-[88rem] w-full mx-auto overflow-hidden min-h-[40rem]">
-        <Suspense fallback={null}>
-          <Spectrogram3D onPhase={setPhase} className="absolute inset-x-0 bottom-0 top-[28%]" />
-        </Suspense>
+          <DuskScene onPhase={setPhase} className="absolute inset-0" />
 
         {/* top bar: what this call claims */}
         <div className="relative z-10 flex items-start justify-between gap-3 p-3 sm:p-5">

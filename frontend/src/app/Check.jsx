@@ -1,10 +1,10 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Verdict from "../components/Verdict.jsx";
 import { api, form } from "../lib/api.js";
 import { SAMPLES } from "../lib/samples.js";
 
-const Spectrogram3D = lazy(() => import("../components/Spectrogram3D.jsx"));
+import DuskScene from "../components/DuskScene.jsx";
 const CHANNELS = ["email", "whatsapp", "phone", "sms", "meet", "teams", "zoom"];
 const mod = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘" : "Ctrl";
 
@@ -118,7 +118,7 @@ export default function Check() {
             </motion.div>
           ) : (
             <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="frame dusk relative overflow-hidden min-h-[30rem] p-8 sm:p-10 flex flex-col justify-start">
-              <Suspense fallback={null}><Spectrogram3D alert={0} className="absolute inset-x-0 bottom-0 top-[45%] opacity-90" /></Suspense>
+              <DuskScene alert={0} className="absolute inset-x-0 bottom-0 top-[45%] opacity-90" />
               <h2 className="relative text-5xl font-bold tracking-[-0.04em] leading-[0.98] text-white max-w-[13ch] drop-shadow-[0_2px_24px_rgb(35_22_94/0.25)]">Got a request for money, an OTP or files?</h2>
               <p className="relative mt-4 text-[15px] leading-relaxed max-w-md text-ink/85">Paste it, add the voice note or video, and say who it claims to be from. You get a verdict, the reasons behind it, and the safest way to verify, before you act.</p>
             </motion.div>

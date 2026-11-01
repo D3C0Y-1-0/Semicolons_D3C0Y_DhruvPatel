@@ -1,10 +1,10 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CodeWordCheck } from "../components/Defense.jsx";
 import { Stamp } from "../components/Verdict.jsx";
 import { api, WS } from "../lib/api.js";
 
-const Spectrogram3D = lazy(() => import("../components/Spectrogram3D.jsx"));
+import DuskScene from "../components/DuskScene.jsx";
 const TACTIC = { urgency: "urgency", secrecy: "secrecy", authority: "authority claim", payment_request: "payment request", credential_request: "OTP or password request", channel_switch: "channel switch", new_beneficiary: "new account", fear_threat: "threat", reward: "reward bait" };
 
 // Same backend stream as the Chrome extension. Chrome asks which tab to share; tick "Also share tab audio".
@@ -40,7 +40,7 @@ export default function Live() {
   return (
     <div className="space-y-6">
       <div className="relative frame dusk overflow-hidden h-80">
-        <Suspense fallback={null}><Spectrogram3D alert={alert} className={`absolute inset-x-0 bottom-0 top-[25%] transition-opacity duration-700 ${running ? "opacity-100" : "opacity-70"}`} /></Suspense>
+        <DuskScene alert={alert} className={`absolute inset-x-0 bottom-0 top-[40%] transition-opacity duration-700 ${running ? "opacity-100" : "opacity-70"}`} />
         <div className="relative z-10 p-6 sm:p-8 h-full flex flex-col">
           <h2 className="text-4xl font-bold tracking-[-0.03em] text-white drop-shadow-[0_2px_24px_rgb(35_22_94/0.25)]">Live call guard</h2>
           <p className="mt-2 max-w-md font-semibold">{running ? "Listening alongside you. A reading lands every 3 seconds." : "Open the Meet, Zoom or Teams call in another tab, then share that tab here."}</p>

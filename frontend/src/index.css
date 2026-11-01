@@ -49,6 +49,12 @@ textarea:focus-visible, input:focus-visible, select:focus-visible { outline-offs
 /* dusk sky behind the voice landscape */
 .dusk { background: linear-gradient(180deg, #8ea3dd 0%, #b5b8ea 30%, #d9c6e3 55%, #f3d7d0 72%, #f7e4d6 100%); }
 
+/* DuskScene: river shimmer and a few twinkling windows */
+@keyframes ds-shimmer { to { stroke-dashoffset: -200; } }
+.ds-shimmer { animation: ds-shimmer 4s linear infinite; }
+@keyframes ds-twinkle { 50% { opacity: 0.25; } }
+.ds-twinkle { animation: ds-twinkle 3s ease-in-out infinite; }
+
 /* the heat scale, 0 to 100 risk */
 .heat-scale { background: linear-gradient(90deg, var(--color-heat-0) 0%, var(--color-heat-1) 30%, var(--color-heat-2) 60%, var(--color-heat-3) 82%, var(--color-heat-4) 100%); }
 
