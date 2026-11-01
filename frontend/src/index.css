@@ -49,11 +49,20 @@ textarea:focus-visible, input:focus-visible, select:focus-visible { outline-offs
 /* dusk sky behind the voice landscape */
 .dusk { background: linear-gradient(180deg, #8ea3dd 0%, #b5b8ea 30%, #d9c6e3 55%, #f3d7d0 72%, #f7e4d6 100%); }
 
-/* DuskScene: river shimmer and a few twinkling windows */
-@keyframes ds-shimmer { to { stroke-dashoffset: -200; } }
-.ds-shimmer { animation: ds-shimmer 4s linear infinite; }
-@keyframes ds-twinkle { 50% { opacity: 0.25; } }
-.ds-twinkle { animation: ds-twinkle 3s ease-in-out infinite; }
+/* DuskScene: river glints, drifting cloud banks, slow light rays, floating motes */
+@keyframes ds-glint { 0%, 100% { opacity: 0.1; } 50% { opacity: 0.85; } }
+.ds-glint { animation: ds-glint 3s ease-in-out infinite; }
+@keyframes ds-drift { from { transform: translateX(-3%); } to { transform: translateX(3%); } }
+.ds-drift { animation: ds-drift 38s ease-in-out infinite alternate; }
+.ds-drift-r { animation: ds-drift 29s ease-in-out infinite alternate-reverse; }
+@keyframes ds-rays { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
+.ds-rays { transform-box: view-box; transform-origin: 800px 470px; animation: ds-rays 26s ease-in-out infinite alternate; }
+@keyframes ds-mote {
+  0% { transform: translate(0, 0); opacity: 0; }
+  15%, 80% { opacity: var(--o); }
+  100% { transform: translate(28px, -150px); opacity: 0; }
+}
+.ds-mote { animation: ds-mote 12s linear infinite; }
 
 /* the heat scale, 0 to 100 risk */
 .heat-scale { background: linear-gradient(90deg, var(--color-heat-0) 0%, var(--color-heat-1) 30%, var(--color-heat-2) 60%, var(--color-heat-3) 82%, var(--color-heat-4) 100%); }

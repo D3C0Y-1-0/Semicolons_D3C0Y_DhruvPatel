@@ -62,7 +62,7 @@ function Hero() {
           </a>
         </div>
 
-        <motion.h1 className="relative z-[5] text-center text-white font-semibold tracking-[-0.04em] leading-[0.92] px-4 mt-4 sm:mt-6 text-[clamp(2.4rem,6.3vw,6.6rem)] drop-shadow-[0_2px_30px_rgb(35_22_94/0.25)]"
+        <motion.h1 className="relative z-[5] text-center text-white font-semibold tracking-[-0.04em] leading-[0.92] px-4 mt-4 sm:mt-6 text-[clamp(2.4rem,6.3vw,6.6rem)] drop-shadow-[0_3px_22px_rgb(35_22_94/0.6)]"
           initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, ease: [0.2, 0.8, 0.2, 1] }}>
           <span className={`block opacity-90 ${phase === "flagging" ? "glitching" : ""}`}>The voice sounds like your CFO.</span>
           <span className={`block transition-colors duration-700 ${hot ? "text-night" : "text-white/70"}`}>The request doesn't.</span>

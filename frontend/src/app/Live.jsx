@@ -40,7 +40,7 @@ export default function Live() {
   return (
     <div className="space-y-6">
       <div className="relative frame dusk overflow-hidden h-80">
-        <DuskScene alert={alert} className={`absolute inset-x-0 bottom-0 top-[40%] transition-opacity duration-700 ${running ? "opacity-100" : "opacity-70"}`} />
+        <DuskScene alert={alert} className={`absolute inset-x-0 bottom-0 top-[40%] [mask-image:linear-gradient(to_bottom,transparent,black_40%)] transition-opacity duration-700 ${running ? "opacity-100" : "opacity-70"}`} />
         <div className="relative z-10 p-6 sm:p-8 h-full flex flex-col">
           <h2 className="text-4xl font-bold tracking-[-0.03em] text-white drop-shadow-[0_2px_24px_rgb(35_22_94/0.25)]">Live call guard</h2>
           <p className="mt-2 max-w-md font-semibold">{running ? "Listening alongside you. A reading lands every 3 seconds." : "Open the Meet, Zoom or Teams call in another tab, then share that tab here."}</p>
