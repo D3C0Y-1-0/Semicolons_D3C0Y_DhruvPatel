@@ -18,10 +18,11 @@ const PRESETS = {
 };
 
 export default function MathsLab() {
+  const start = PRESETS["Fake CFO wire"]; // not PRESETS[preset]: useState's argument is evaluated every render and preset becomes "" after a manual change
   const [preset, setPreset] = useState("Fake CFO wire");
-  const [s, setS] = useState(PRESETS[preset].s);
-  const [action, setAction] = useState(PRESETS[preset].action);
-  const [unreg, setUnreg] = useState(PRESETS[preset].unreg);
+  const [s, setS] = useState(start.s);
+  const [action, setAction] = useState(start.action);
+  const [unreg, setUnreg] = useState(start.unreg);
   const pick = (k) => { setPreset(k); setS(PRESETS[k].s); setAction(PRESETS[k].action); setUnreg(PRESETS[k].unreg); };
 
   const r = useMemo(() => fuse(SIGNALS.map(([k, label]) => ({ signal: k, label, score: s[k] })), action, { unregistered_channel: unreg }), [s, action, unreg]);
