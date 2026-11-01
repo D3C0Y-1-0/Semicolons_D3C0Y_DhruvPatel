@@ -133,8 +133,10 @@ Built 1 Nov afternoon (mentor: "what if the phone is hacked or the login leaked?
      until a video YES (via="video") or a YES from both the person and a second approver. NO from anyone blocks at once.
      Tests: python test_answer_rules.py.
    - Video YES (videoyes.py, POST /v/{case}/video, page step in notify.video_step): 5 s selfie clip saying the live code
-     word + a random move; passes only if GenD, face match, pellav2, voiceprint, Whisper heard the code word (last 3 windows)
-     and lip-sync all pass; a check that can't run fails; clip transcoded to MP4, scored, deleted. The move isn't verified.
+     word + a random move (7 s, raw mic, code word shown steady for 60 s and frozen while recording). Required: GenD (no swap),
+     face match, Whisper heard the code word (fuzzy per word, last 3 windows). Supporting, at least one of: pellav2,
+     voiceprint, lip-sync (phone mics trip voice checks on real people: first real tries scored 0.96 "synthetic").
+     A check that can't run fails; clip transcoded to MP4, scored, deleted; each try's scores logged. Move not verified.
    - Second approver: POST /cases/{case}/approver (limit must cover the amount), signed page /a/{case}/{person}.
    - Dashboard: /me/{person} shows the code word, requests waiting (incl. second approvals) and recent decisions.
    - Tested: rules unit test, edge cases, full flow through the tunnel (face-swap demo clip rejected on all 6 checks,

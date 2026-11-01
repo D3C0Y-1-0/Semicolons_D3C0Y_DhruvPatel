@@ -238,8 +238,13 @@ While you speak: <b>__MOVE__</b>.</div>
 <p style="font-size:13px">The video is checked for a face swap, a cloned voice, your enrolled face and voice, the code word and lip movement, then deleted.</p>
 <script>
 const T = "__T__", CID = "__CID__", $ = (id) => document.getElementById(id);
-async function code() { try { $("code").textContent = (await (await fetch(`/v/${CID}/code?t=${T}`)).json()).phrase; } catch (e) {} }
-code(); setInterval(code, 3000);
+// the code word holds still for a minute (the server accepts the last 90 s) and freezes once recording starts
+let shownAt = 0, recording = false;
+async function code() {
+  if (recording || Date.now() - shownAt < 60000) return;
+  try { $("code").textContent = (await (await fetch(`/v/${CID}/code?t=${T}`)).json()).phrase; shownAt = Date.now(); } catch (e) {}
+}
+code(); setInterval(code, 5000);
 $("rec").onclick = async () => {
   let stream;
   // raw microphone: the browser's echo cancellation, noise suppression and auto-gain make a real voice sound synthetic
@@ -251,12 +256,12 @@ $("rec").onclick = async () => {
   const type = ["video/webm;codecs=vp8,opus", "video/webm", "video/mp4"].find((t) => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || "";
   const mr = new MediaRecorder(stream, type ? { mimeType: type } : {}), parts = [];
   mr.ondataavailable = (e) => e.data.size && parts.push(e.data);
-  $("rec").disabled = true; $("res").innerHTML = "";
+  $("rec").disabled = true; $("res").innerHTML = ""; recording = true;
   let n = 7; $("st").textContent = "Recording… 7";
   const iv = setInterval(() => { n -= 1; $("st").textContent = n > 0 ? "Recording… " + n : "Sending…"; }, 1000);
   mr.start(); await new Promise((r) => setTimeout(r, 7200));
   const stopped = new Promise((r) => (mr.onstop = r)); mr.stop(); await stopped;
-  clearInterval(iv); stream.getTracks().forEach((t) => t.stop());
+  clearInterval(iv); stream.getTracks().forEach((t) => t.stop()); recording = false; shownAt = 0;
   const mime = mr.mimeType || type || "video/webm", fd = new FormData();
   fd.append("t", T); fd.append("video", new Blob(parts, { type: mime }), mime.includes("mp4") ? "yes.mp4" : "yes.webm");
   $("st").textContent = "Checking your face, voice and code word. This takes about 15 seconds…";
@@ -265,7 +270,8 @@ $("rec").onclick = async () => {
     if (!res.ok) throw new Error(d.detail || "upload failed");
     for (const c of d.checks) {
       const li = document.createElement("li"), b = document.createElement("b"), s = document.createElement("span");
-      b.textContent = (c.ok ? "PASS  " : "FAIL  ") + c.name; b.style.color = c.ok ? "var(--low)" : "var(--high)";
+      b.textContent = (c.ok ? "PASS  " : c.supporting ? "WEAK  " : "FAIL  ") + c.name + (c.supporting ? " (supporting)" : "");
+      b.style.color = c.ok ? "var(--low)" : c.supporting ? "var(--soft)" : "var(--high)";
       s.textContent = c.detail; s.style.display = "block"; s.style.color = "var(--soft)"; li.append(b, s); $("res").append(li);
     }
     $("st").innerHTML = d.passed ? '<span class="done" style="color:var(--low)">Approved. The request can go ahead.</span>'

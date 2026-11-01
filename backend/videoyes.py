@@ -1,8 +1,10 @@
 """Video YES: the real person proves the YES is theirs with a 7-second selfie video.
 
-A hacked phone or a leaked password can tap YES. It can't show the person's own live face and voice saying a code word
-that didn't exist a minute ago. The clip passes only if every check passes; a check that can't run counts as a fail
-(no face enrolled, no speech heard), so the YES never gets through on missing evidence. The clip is deleted after scoring.
+A hacked phone or a leaked password can tap YES. It can't show the person's own live face saying a code word that didn't
+exist a minute ago. Three checks are required: a real face (no swap), the enrolled face, and the live code word. The voice
+and lip checks support them: at least one of the three must pass, because phone microphones (noise, codecs, a different
+mic from the enrolment) trip voice checks on genuine people. A check that can't run counts as a fail, so a YES never gets
+through on missing evidence. The clip is deleted after scoring.
 ponytail: the random move is shown as a liveness prompt but not verified automatically; a head-pose check
 (InsightFace landmarks across frames) is the upgrade path.
 """
@@ -64,16 +66,25 @@ def score(path, person):
     first = person["name"].split()[0]
     no_face = "no face found in the video" if not v["face_emb"] else f"{first} has no face enrolled in Trust Graph"
     no_voice = "no clear speech heard" if not a["voice_emb"] else f"{first} has no voice enrolled in Trust Graph"
-    checks = [
+    required = [
         _check("Real face, not a face swap", sig.get("face_video"), "couldn't check the face", "face looks real", "face looks manipulated"),
         _check(f"Face matches {first}'s enrolled photo", bio.get("face_mismatch"), no_face, "same person", "a different face"),
-        _check("Real voice, not a clone", sig.get("audio_spoof"), "no clear speech heard", "voice sounds human", "voice sounds synthetic"),
-        _check(f"Voice matches {first}'s voiceprint", bio.get("voice_mismatch"), no_voice, "same voice", "a different voice"),
         {"name": "Said the live code word", "ok": heard_code(db.code_secret(person["id"]), said),
          "detail": f"heard: “{said[:80]}”" if said else "no words heard"},
+    ]
+    supporting = [
+        _check("Real voice, not a clone", sig.get("audio_spoof"), "no clear speech heard", "voice sounds human", "voice sounds synthetic"),
+        _check(f"Voice matches {first}'s voiceprint", bio.get("voice_mismatch"), no_voice, "same voice", "a different voice"),
         _check("Lips move with the words", sig.get("lip_sync"), "couldn't check lip movement", "lips match the audio", "lips don't match the audio"),
     ]
-    return {"passed": all(c["ok"] for c in checks), "checks": checks, "errors": a["errors"] + v["errors"]}
+    for c in supporting:
+        c["supporting"] = True
+    return {"passed": verdict(required, supporting), "checks": required + supporting, "errors": a["errors"] + v["errors"]}
+
+
+def verdict(required, supporting):
+    """Every required check, and at least one supporting check."""
+    return all(c["ok"] for c in required) and any(c["ok"] for c in supporting)
 
 
 def demo():
@@ -89,6 +100,9 @@ def demo():
     assert not c["ok"] and c["detail"] == "missing"
     assert _check("x", {"score": 0.1}, "m", "ok", "bad")["ok"] and not _check("x", {"score": 0.9}, "m", "ok", "bad")["ok"]
     assert pick_move() in MOVES
+    ok, bad = {"ok": True}, {"ok": False}
+    assert verdict([ok, ok, ok], [bad, bad, ok]) and not verdict([ok, ok, ok], [bad, bad, bad])   # one supporting is enough
+    assert not verdict([ok, bad, ok], [ok, ok, ok])                                                # a required one never is
     print("videoyes ok:", p)
 
 
