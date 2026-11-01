@@ -26,6 +26,7 @@ import mules  # noqa: E402
 import notify  # noqa: E402
 import report  # noqa: E402
 import verify  # noqa: E402
+import videoyes  # noqa: E402
 from detectors import identity, message  # noqa: E402
 
 AUDIO_EXT = {".wav", ".mp3", ".m4a", ".ogg", ".opus", ".flac", ".aac", ".amr"}
@@ -359,7 +360,28 @@ def send_verify(cid: str):
             out["sent"].append("telegram")
         except Exception as e:
             out["errors"].append(f"telegram failed: {e}")
-    return {**db.update_case(cid, status="verifying"), "delivery": out}
+    return {**db.update_case(cid, status="verifying", result_patch={"asked_at": time.time()}), "delivery": out}
+
+
+@app.post("/cases/{cid}/approver")
+def ask_approver(cid: str, pid: str = Form(...)):
+    """Above the approval limit one person's YES isn't enough: send a second approver their own signed link."""
+    c = db.get_case(cid)
+    a = db.get_person(pid)
+    if not c or not a:
+        raise HTTPException(404)
+    if pid == c.get("claimed_person_id"):
+        raise HTTPException(400, "The second approver has to be someone else.")
+    amount = (c["result"].get("facts") or {}).get("amount_inr") or 0
+    if amount and (a.get("approval_limit") or 0) < amount:
+        raise HTTPException(400, f"{a['name']} can only approve up to {identity.inr(a.get('approval_limit') or 0)}.")
+    who = (c["result"].get("claimed_person") or {}).get("name", "a colleague")
+    link = notify.approver_link(c, pid)
+    out = notify.deliver(a, "TrustCheck: second approval needed",
+                         f"TrustCheck: a request in {who}'s name needs your approval as second approver"
+                         + (f" ({identity.inr(amount)})" if amount else "") + f". Approve or reject here: {link}")
+    db.update_case(cid, result_patch={"approver_asked": {"id": pid, "name": a["name"], "at": time.time()}})
+    return {"delivery": {**out, "link": link}, "approver": a["name"]}
 
 
 @app.post("/cases/{cid}/decision")
@@ -392,8 +414,57 @@ def verify_answer(cid: str, t: str = Form(""), answer: str = Form(...)):
     c, p = _case_person(cid)
     if not notify.signed(p["id"], "v:" + cid, t) or answer not in ("yes", "no"):
         raise HTTPException(403, "This link isn't valid.")
-    c = notify.record_answer(cid, answer, "link")
-    return notify.case_page(c, p, t, answered=c["result"].get("verification", {}).get("answer"))
+    return notify.case_page(notify.record_answer(cid, answer, "link"), p, t)
+
+
+@app.get("/v/{cid}/code")
+def verify_code(cid: str, t: str = ""):
+    """The live code word for the video YES step (same signed link as the page)."""
+    c, p = _case_person(cid)
+    if not notify.signed(p["id"], "v:" + cid, t):
+        raise HTTPException(403)
+    return {"phrase": codeword.phrase(db.code_secret(p["id"]))}
+
+
+@app.post("/v/{cid}/video")
+async def verify_video(cid: str, t: str = Form(""), video: UploadFile = File(...)):
+    """Video YES: the clip must pass every check (videoyes.score) to release the request. It's deleted after scoring."""
+    c, p = _case_person(cid)
+    if not notify.signed(p["id"], "v:" + cid, t):
+        raise HTTPException(403, "This link isn't valid.")
+    if c["status"] in ("verified", "confirmed_attack"):
+        return {"passed": c["status"] == "verified", "checks": [], "status": c["status"]}
+    path = await _save(video)
+    try:
+        if os.path.getsize(path) > 30 * 1024 * 1024:
+            raise HTTPException(413, "That video is too long. Record 5 seconds.")
+        out = await asyncio.to_thread(videoyes.score, path, p)
+    finally:
+        os.remove(path)  # privacy: the face and voice clip is never kept
+    tries = c["result"].get("video_tries", []) + [{"at": round(time.time()), "passed": out["passed"],
+                                                   "failed": [x["name"] for x in out["checks"] if not x["ok"]]}]
+    db.update_case(cid, result_patch={"video_tries": tries})
+    if out["passed"]:
+        c = notify.record_answer(cid, "yes", "video")
+    return {**out, "status": c["status"]}
+
+
+@app.get("/a/{cid}/{pid}", response_class=HTMLResponse)
+def approver_page(cid: str, pid: str, t: str = ""):
+    c, owner = _case_person(cid)
+    a = db.get_person(pid)
+    if not a or not notify.signed(pid, "a:" + cid, t):
+        raise HTTPException(403, "This link isn't valid.")
+    return notify.case_page(c, a, t, approver_for=owner)
+
+
+@app.post("/a/{cid}/{pid}", response_class=HTMLResponse)
+def approver_answer(cid: str, pid: str, t: str = Form(""), answer: str = Form(...)):
+    c, owner = _case_person(cid)
+    a = db.get_person(pid)
+    if not a or not notify.signed(pid, "a:" + cid, t) or answer not in ("yes", "no"):
+        raise HTTPException(403, "This link isn't valid.")
+    return notify.case_page(notify.record_answer(cid, answer, "approver", approver=pid), a, t, approver_for=owner)
 
 
 @app.get("/me/{pid}", response_class=HTMLResponse)

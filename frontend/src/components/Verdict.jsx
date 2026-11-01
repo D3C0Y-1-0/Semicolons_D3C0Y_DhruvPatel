@@ -138,7 +138,51 @@ export function Waveform({ peaks = [], timeline = [], frames = [], duration }) {
 const BAND_BG = { LOW: "bg-low", MEDIUM: "bg-medium", HIGH: "bg-high" };
 const ANSWER = { HIGH: "Don't act on this.", MEDIUM: "Pause and verify first.", LOW: "Looks safe to go ahead." };
 
-function ResultCard({ r, status, delivery, dismissed, open, onAccept, onReject, onVerify, onToggle }) {
+// Above the approval limit (or after an impossibly fast YES) one tap can't release the payment: a hacked phone could tap it.
+// It needs the person's 5-second video YES (asked for on their phone) or a second approver from the Trust Graph.
+function SecondApprover({ caseId, r }) {
+  const [people, setPeople] = useState(null);
+  const [pick, setPick] = useState("");
+  const [sent, setSent] = useState(null);
+  const [err, setErr] = useState("");
+  useEffect(() => { api("/people").then(setPeople).catch(() => setPeople([])); }, []);
+  const amount = r.facts?.amount_inr || 0;
+  const can = (people || []).filter((p) => p.id !== r.claimed_person?.id && (!amount || (p.approval_limit || 0) >= amount));
+  const ask = async () => {
+    setErr("");
+    try { setSent(await api(`/cases/${caseId}/approver`, { method: "POST", body: form({ pid: pick || can[0].id }) })); } catch (e) { setErr(e.message); }
+  };
+  if (sent) return <SendLinks delivery={sent.delivery} who={sent.approver.split(" ")[0]} qr={sent.delivery.link} qrLabel={`${sent.approver.split(" ")[0]} can scan to approve`} />;
+  if (!people) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {can.length ? (
+        <>
+          <select id="second-approver" aria-label="Second approver" className="field" value={pick || can[0].id} onChange={(e) => setPick(e.target.value)}>
+            {can.map((p) => <option key={p.id} value={p.id}>{p.name}{p.role ? `, ${p.role}` : ""}</option>)}
+          </select>
+          <button type="button" onClick={ask} className="btn btn-primary">Ask a second approver</button>
+        </>
+      ) : <span className="text-sm text-ink-soft">Nobody else in Trust Graph can approve this amount.</span>}
+      {err && <span className="text-sm text-high">{err}</span>}
+    </div>
+  );
+}
+
+function Needs({ needs, r, caseId, delivery, onVerify }) {
+  const who = r.claimed_person?.name.split(" ")[0] || "They";
+  return (
+    <div className="rounded-xl border border-high/40 bg-high/5 p-4 space-y-3">
+      <p className="text-[15px]"><b>A tap isn't enough here</b> because {needs.why.join("; ")}.</p>
+      <p className="text-[14px] text-ink-soft">The payment stays on hold until {who} records a 5-second video YES on their phone, or a second approver approves too.</p>
+      {delivery ? <SendLinks delivery={delivery} who={who} qr={delivery.link} qrLabel={`${who} scans to record the video YES`} />
+        : r.claimed_person && <button type="button" onClick={onVerify} className="btn btn-plain">Send {who} the video YES link</button>}
+      <SecondApprover caseId={caseId} r={r} />
+    </div>
+  );
+}
+
+function ResultCard({ r, status, delivery, needs, caseId, dismissed, open, onAccept, onReject, onVerify, onToggle }) {
   const [confirming, setConfirming] = useState(false);
   const who = r.claimed_person?.name.split(" ")[0];
   // plain words only: what it looks like and what to do; the technical evidence lives under "Show details"
@@ -165,6 +209,7 @@ function ResultCard({ r, status, delivery, dismissed, open, onAccept, onReject, 
         <p className="text-[17px] leading-relaxed max-w-prose">{reason}</p>
         {r.hold_until && !done && r.band === "HIGH" && <p className="text-[14px] font-semibold text-high">The payment is on hold for 30 minutes.</p>}
         {done ? <p className={`text-[16px] font-bold ${done[0]}`}>{done[1]}</p>
+          : status === "verifying" && needs ? <Needs needs={needs} r={r} caseId={caseId} delivery={delivery} onVerify={onVerify} />
           : status === "verifying" ? (
             <div className="space-y-3">
               <p className="text-[16px] font-semibold">Waiting for {who || "the real person"} to answer YES or NO on their own phone…</p>
@@ -199,16 +244,18 @@ export default function Verdict({ result: r, caseId, initialStatus = "open", sim
   const [delivery, setDelivery] = useState(null);
   const [open, setOpen] = useState(!simple);
   const [dismissed, setDismissed] = useState(false);
+  const [needs, setNeeds] = useState(r.needs || null);
+  const sync = (c) => { setStatus(c.status); setNeeds(c.result?.needs || null); };
 
   useEffect(() => {
     if (status !== "verifying") return;
-    const t = setInterval(async () => { const c = await api(`/cases/${caseId}`); if (c.status !== "verifying") setStatus(c.status); }, 2000);
+    const t = setInterval(async () => sync(await api(`/cases/${caseId}`)), 2000);
     return () => clearInterval(t);
   }, [status, caseId]);
 
   const run = async (fn) => { setMsg(""); try { await fn(); } catch (e) { setMsg(e.message); } };
-  const verify = () => run(async () => { const c = await api(`/verify/${caseId}`, { method: "POST" }); setDelivery(c.delivery); setStatus(c.status); });
-  const decide = (answer) => run(async () => setStatus((await api(`/cases/${caseId}/decision`, { method: "POST", body: form({ answer }) })).status));
+  const verify = () => run(async () => { const c = await api(`/verify/${caseId}`, { method: "POST" }); setDelivery(c.delivery); sync(c); });
+  const decide = (answer) => run(async () => sync(await api(`/cases/${caseId}/decision`, { method: "POST", body: form({ answer }) })));
   const download = () => run(async () => {
     const text = await api(`/cases/${caseId}/report`);
     Object.assign(document.createElement("a"), { href: URL.createObjectURL(new Blob([text], { type: "text/markdown" })), download: `cert-in-${caseId}.md` }).click();
@@ -218,7 +265,7 @@ export default function Verdict({ result: r, caseId, initialStatus = "open", sim
   const reject = () => (r.band === "LOW" ? setDismissed(true) : decide("no"));
 
   const card = simple && (
-    <ResultCard r={r} status={status} delivery={delivery} dismissed={dismissed} open={open}
+    <ResultCard r={r} status={status} delivery={delivery} needs={needs} caseId={caseId} dismissed={dismissed} open={open}
       onAccept={() => decide("yes")} onReject={reject} onVerify={verify} onToggle={() => setOpen(!open)} />
   );
   if (simple && !open) return <article className="space-y-3">{card}{msg && <p className="text-sm text-high">{msg}</p>}</article>;
@@ -259,6 +306,7 @@ export default function Verdict({ result: r, caseId, initialStatus = "open", sim
               <motion.p key={status} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} aria-live="polite"
                 className={`font-semibold ${status === "confirmed_attack" ? "text-high" : status === "verified" ? "text-low" : "text-ink-soft"}`}>{STATUS[status]}</motion.p>
             </AnimatePresence>
+            {!simple && status === "verifying" && needs && <Needs needs={needs} r={r} caseId={caseId} delivery={delivery} onVerify={verify} />}
             {(status === "open" || status === "verifying") && (
               <div className="space-y-4">
                 {status === "verifying" && delivery && <SendLinks delivery={delivery} who={r.claimed_person?.name.split(" ")[0] || "them"} qr={delivery.link} qrLabel="In the room? Scan to answer" />}

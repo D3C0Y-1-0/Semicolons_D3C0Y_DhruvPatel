@@ -44,12 +44,17 @@ def _on_callback(cq):
     import notify  # late import: keeps the bot module light
     _, cid, ans = cq["data"].split(":")
     case = notify.record_answer(cid, ans, "telegram")  # a case already answered elsewhere keeps its first answer
-    if case and case["result"].get("verification", {}).get("answer") != ans:
+    if case and case["result"].get("verification", {}).get("answer") not in (None, ans):
         ans = case["result"]["verification"]["answer"]
+    if case and case["status"] == "verifying" and ans == "yes":  # a big request: a tap isn't enough, ask for the video YES
+        why = "; ".join(case["result"].get("needs", {}).get("why", []))
+        text = (f"Thanks. One more step: because {why}, a tap isn't enough. Record a 5-second video YES here: "
+                + notify.case_link(case, case["claimed_person_id"]))
+    else:
+        text = "Recorded: " + ("you confirmed the request." if ans == "yes" else "NOT you. The payment is on hold and security has been alerted.")
     call("answerCallbackQuery", callback_query_id=cq["id"], text="Recorded. Thank you.")
     try:  # a second tap asks Telegram to "edit" the message into the text it already has: a harmless 400
-        call("editMessageText", chat_id=cq["message"]["chat"]["id"], message_id=cq["message"]["message_id"],
-             text="Recorded: " + ("you confirmed the request." if ans == "yes" else "NOT you. The payment is on hold and security has been alerted."))
+        call("editMessageText", chat_id=cq["message"]["chat"]["id"], message_id=cq["message"]["message_id"], text=text)
     except Exception:
         pass
 

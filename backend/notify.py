@@ -102,17 +102,49 @@ def deliver(person, subject, text):
     return {"sent": sent, "errors": errors, "links": {k: v for k, v in links.items() if v}, "text": text}
 
 
-def record_answer(cid, ans, via):
-    """YES / NO from any channel. A case that's already decided keeps its first answer."""
+FAST_YES_SECONDS = int(os.getenv("FAST_YES_SECONDS", "8"))  # quicker than a person can read the request
+
+
+def strong_needed(case, person):
+    """Why one tap of YES isn't enough on this case (empty: it is). A hacked phone or a leaked login can tap YES."""
+    r = case["result"]
+    amount = (r.get("facts") or {}).get("amount_inr") or 0
+    limit = (person or {}).get("approval_limit") or 0
+    if limit and amount > limit:
+        return [f"{inr(amount)} is above {person['name'].split()[0]}'s {inr(limit)} approval limit"]
+    return ["it is a high-value payment"] if r.get("action") == "payment_high" else []
+
+
+def record_answer(cid, ans, via, approver=None):
+    """YES / NO from any channel; a decided case keeps its first decision. NO from anyone blocks at once.
+    A plain YES releases a small request. Above the approval limit, or when the YES came impossibly fast, it releases
+    only with a video YES (via="video") or a YES from both the person and a second approver."""
     case = db.get_case(cid)
     if not case or case["status"] in ("verified", "confirmed_attack"):
         return case
-    case = db.update_case(cid, status="verified" if ans == "yes" else "confirmed_attack",
-                          result_patch={"verification": {"answer": ans, "at": time.time(), "via": via}})
+    r, now = case["result"], time.time()
+    answers = r.get("answers", []) + [{"answer": ans, "via": via, "at": round(now), **({"approver": approver} if approver else {})}]
     if ans == "no":
+        case = db.update_case(cid, status="confirmed_attack",
+                              result_patch={"answers": answers, "verification": {"answer": "no", "at": now, "via": via}})
         import mules
         mules.harvest_case(case, "confirmed attack")
-    return case
+        return case
+    person = db.get_person(case["claimed_person_id"]) if case.get("claimed_person_id") else None
+    why = list((r.get("needs") or {}).get("why") or strong_needed(case, person))
+    if via in ("link", "telegram") and r.get("asked_at") and now - r["asked_at"] < FAST_YES_SECONDS:
+        why.append(f"the YES came {now - r['asked_at']:.0f} s after the request, faster than a person can read it")
+    owner_yes = any(x["answer"] == "yes" and not x.get("approver") for x in answers)
+    approver_yes = any(x["answer"] == "yes" and x.get("approver") for x in answers)
+    if via == "video" or (owner_yes and approver_yes) or (not why and not approver):
+        return db.update_case(cid, status="verified",
+                              result_patch={"answers": answers, "verification": {"answer": "yes", "at": now, "via": via}})
+    return db.update_case(cid, status="verifying",
+                          result_patch={"answers": answers, "needs": {"why": why, "what": "a 5-second video YES or a second approver"}})
+
+
+def approver_link(case, pid):
+    return f"{public_url()}/a/{case['id']}/{pid}?t={sign(pid, 'a:' + case['id'])}"
 
 
 def pending_for(pid):
@@ -153,23 +185,87 @@ def page(title, body):
     return PAGE.format(title=html.escape(title), body=body)
 
 
-def case_page(case, person, token, answered=None):
+def case_page(case, person, token, approver_for=None):
+    """The YES / NO page. `person` is who answers; approver_for is the claimed person when a second approver answers."""
     r = case["result"]
     amount = (r.get("facts") or {}).get("amount_inr")
     first = html.escape(person["name"].split()[0])
-    if answered or case["status"] in ("verified", "confirmed_attack"):
-        yes = (answered or ("yes" if case["status"] == "verified" else "no")) == "yes"
+    if case["status"] in ("verified", "confirmed_attack"):
+        yes = case["status"] == "verified"
         return page("Recorded", f"<h1>Thank you, {first}.</h1><p class='done' style='color:var(--{'low' if yes else 'high'})'>"
-                    + ("You confirmed the request. It can go ahead." if yes else "Recorded: it was NOT you. The request is blocked and security has been alerted.")
+                    + ("Approved. The request can go ahead." if yes else "Recorded: NOT approved. The request is blocked and security has been alerted.")
                     + "</p><p>You can close this page.</p>")
+    mine = [x for x in r.get("answers", []) if x.get("approver") == (person["id"] if approver_for else None)]
+    if r.get("needs") and any(x["answer"] == "yes" for x in mine):
+        if approver_for:  # this approver has said YES; the case waits for the owner's YES or a video
+            return page("Waiting", f"<h1>Thank you, {first}.</h1><p class='done'>Your approval is recorded.</p>"
+                        f"<p>It goes ahead once {html.escape(approver_for['name'])} confirms as well.</p>")
+        return video_step(case, person, token)
     said = (r.get("message") or {}).get("text") or ""
     what = "“" + html.escape(said[:180] + ("…" if len(said) > 180 else "")) + "”" if said else "A request in your name."
-    return page("Did you send this?", f"""<h1>{first}, did you send this request?</h1>
-<p>Someone using your name contacted a colleague via <b>{html.escape(r.get('channel') or 'an unknown channel')}</b>.</p>
+    head = (f"<h1>{first}, can you approve this?</h1><p>A request in <b>{html.escape(approver_for['name'])}</b>'s name needs a second "
+            f"approver because {html.escape('; '.join((r.get('needs') or {}).get('why') or ['it is above their limit']))}.</p>") if approver_for else (
+            f"<h1>{first}, did you send this request?</h1><p>Someone using your name contacted a colleague via "
+            f"<b>{html.escape(r.get('channel') or 'an unknown channel')}</b>.</p>")
+    return page("Did you send this?" if not approver_for else "Second approval", f"""{head}
 <div class="req">{('Amount: ' + inr(amount) + '<br>') if amount else ''}{what}</div>
 <form method="post" class="row"><input type="hidden" name="t" value="{html.escape(token)}">
-<button class="yes" name="answer" value="yes">YES, it was me</button><button class="no" name="answer" value="no">NO, not me</button></form>
+<button class="yes" name="answer" value="yes">{'Approve' if approver_for else 'YES, it was me'}</button><button class="no" name="answer" value="no">{'Reject' if approver_for else 'NO, not me'}</button></form>
 <p style="font-size:14px">If you didn't send it, tap NO. Nothing is paid until you answer.</p>""")
+
+
+VIDEO_STEP = """<h1>One more step, __FIRST__.</h1>
+<p>Because __WHY__, a tap isn't enough: a hacked phone could tap YES too. Record a 5-second video so we can check it's really you.</p>
+<div class="req">Look at the camera and say:<div class="code" id="code" style="font-size:32px">…</div>“I approve this request.”<br>
+While you speak: <b>__MOVE__</b>.</div>
+<video id="cam" playsinline muted autoplay style="width:100%;margin-top:14px;border-radius:20px;background:#1c1838;aspect-ratio:3/4;object-fit:cover"></video>
+<div class="row"><button class="yes" id="rec" type="button">Record 5 seconds</button></div>
+<p id="st" aria-live="polite"></p><ul id="res"></ul>
+<form method="post" class="row"><input type="hidden" name="t" value="__T__"><button class="no" name="answer" value="no">NO, it wasn't me</button></form>
+<p style="font-size:13px">The video is checked for a face swap, a cloned voice, your enrolled face and voice, the code word and lip movement, then deleted.</p>
+<script>
+const T = "__T__", CID = "__CID__", $ = (id) => document.getElementById(id);
+async function code() { try { $("code").textContent = (await (await fetch(`/v/${CID}/code?t=${T}`)).json()).phrase; } catch (e) {} }
+code(); setInterval(code, 3000);
+$("rec").onclick = async () => {
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: true }); }
+  catch (e) { $("st").textContent = "The camera or microphone is blocked. Allow both for this page and try again."; return; }
+  $("cam").srcObject = stream;
+  const type = ["video/webm;codecs=vp8,opus", "video/webm", "video/mp4"].find((t) => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || "";
+  const mr = new MediaRecorder(stream, type ? { mimeType: type } : {}), parts = [];
+  mr.ondataavailable = (e) => e.data.size && parts.push(e.data);
+  $("rec").disabled = true; $("res").innerHTML = "";
+  let n = 5; $("st").textContent = "Recording… 5";
+  const iv = setInterval(() => { n -= 1; $("st").textContent = n > 0 ? "Recording… " + n : "Sending…"; }, 1000);
+  mr.start(); await new Promise((r) => setTimeout(r, 5200));
+  const stopped = new Promise((r) => (mr.onstop = r)); mr.stop(); await stopped;
+  clearInterval(iv); stream.getTracks().forEach((t) => t.stop());
+  const mime = mr.mimeType || type || "video/webm", fd = new FormData();
+  fd.append("t", T); fd.append("video", new Blob(parts, { type: mime }), mime.includes("mp4") ? "yes.mp4" : "yes.webm");
+  $("st").textContent = "Checking your face, voice and code word. This takes about 15 seconds…";
+  try {
+    const res = await fetch(`/v/${CID}/video`, { method: "POST", body: fd }), d = await res.json();
+    if (!res.ok) throw new Error(d.detail || "upload failed");
+    for (const c of d.checks) {
+      const li = document.createElement("li"), b = document.createElement("b"), s = document.createElement("span");
+      b.textContent = (c.ok ? "PASS  " : "FAIL  ") + c.name; b.style.color = c.ok ? "var(--low)" : "var(--high)";
+      s.textContent = c.detail; s.style.display = "block"; s.style.color = "var(--soft)"; li.append(b, s); $("res").append(li);
+    }
+    $("st").innerHTML = d.passed ? '<span class="done" style="color:var(--low)">Approved. The request can go ahead.</span>'
+      : '<span class="done" style="color:var(--high)">Not accepted, so the request stays on hold.</span>';
+    $("rec").textContent = d.passed ? "Done" : "Try again"; $("rec").disabled = d.passed;
+  } catch (e) { $("st").textContent = "Couldn't check the video: " + e.message + ". Try again."; $("rec").disabled = false; }
+};
+</script>"""
+
+
+def video_step(case, person, token):
+    import videoyes
+    why = "; ".join((case["result"].get("needs") or {}).get("why") or ["this is a big request"])
+    body = (VIDEO_STEP.replace("__FIRST__", html.escape(person["name"].split()[0])).replace("__WHY__", html.escape(why))
+            .replace("__MOVE__", html.escape(videoyes.pick_move())).replace("__T__", html.escape(token)).replace("__CID__", html.escape(case["id"])))
+    return page("Video YES", body)
 
 
 def me_page(person, token):
