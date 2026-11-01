@@ -4,10 +4,7 @@ import Dock from "../components/Dock.jsx";
 import Icon from "../components/Icons.jsx";
 import MathsLab from "./MathsLab.jsx";
 import PhoneVerify from "./PhoneVerify.jsx";
-import {
-  Chapter, WorldDefs, HERO_LAYERS, HERO_LIP, PROBLEM_LAYERS, PROBLEM_LIP, MATHS_LAYERS, MATHS_LIP,
-  HOW_LAYERS, HOW_LIP, VERIFY_LAYERS, VERIFY_LIP, INDIA_LAYERS, INDIA_LIP, DAWN_LAYERS,
-} from "./World.jsx";
+import SkyWorld from "./SkyWorld.jsx";
 
 // What the floating call card says as the scan crosses the voice
 const CALL = {
@@ -43,6 +40,14 @@ function Reveal({ children, delay = 0, className = "" }) {
   );
 }
 
+// every section floats over the one live landscape; a soft shade keeps its text readable over a bright sky
+const Section = ({ id, className = "", shade = "left", children }) => (
+  <section id={id} className={`relative ${className}`}>
+    <div aria-hidden className={`absolute inset-0 pointer-events-none ${shade === "left" ? "bg-gradient-to-r from-[#07051a]/55 via-[#07051a]/15 to-transparent" : shade === "right" ? "bg-gradient-to-l from-[#07051a]/55 via-[#07051a]/15 to-transparent" : "bg-[radial-gradient(ellipse_at_center,rgb(7_5_26/0.55),transparent_70%)]"}`} />
+    <div className="relative">{children}</div>
+  </section>
+);
+
 const Kicker = ({ n, children }) => (
   <p className="flex items-center gap-3 text-sm font-semibold tracking-[0.18em] uppercase text-white/70">
     <span className="tnum">{n}</span><span className="h-px w-10 bg-white/50" />{children}
@@ -72,7 +77,7 @@ function Hero() {
   const call = CALL[phase];
   const hot = phase !== "scanning";
   return (
-    <Chapter z={7} layers={HERO_LAYERS} lip={HERO_LIP} bg="#1d1656" className="h-[100svh] min-h-[38rem]">
+    <Section className="h-[100svh] min-h-[38rem]">
       <header className="flex items-center justify-between gap-6 px-5 sm:px-10 pt-6 text-white">
         <a href="#/" className="font-display text-2xl font-bold tracking-tight">TrustCheck</a>
         <nav aria-label="Sections" className="hidden md:flex gap-9 text-sm font-semibold text-white/80">
@@ -123,18 +128,18 @@ function Hero() {
           <li className="flex items-center gap-2"><Icon name="phone" className="size-4 text-ink-soft" />Unusual channel</li>
         </ul>
       </motion.div>
-    </Chapter>
+    </Section>
   );
 }
 
 export default function Landing() {
   return (
-    <div className="overflow-x-clip bg-[#0f0b2c] text-white">
-      <WorldDefs />
+    <div className="overflow-x-clip bg-[#0b0820] text-white">
+      <SkyWorld />
       <Hero />
       <Dock current="home" />
 
-      <Chapter id="problem" z={6} layers={PROBLEM_LAYERS} lip={PROBLEM_LIP} bg="#130f3a" className="min-h-[125svh]">
+      <Section id="problem" shade="right" className="min-h-[125svh]">
         <div className="px-5 sm:px-10 pt-[26vw] sm:pt-[22vw] lg:pt-[16vw] pb-[24vw] lg:ml-auto lg:w-[48%] lg:pr-[6%]">
           <Reveal><Kicker n="01">The problem</Kicker></Reveal>
           <Reveal delay={0.1}><Title className="mt-5">Spelling mistakes won't save anyone now.</Title></Reveal>
@@ -149,18 +154,18 @@ export default function Landing() {
           </dl>
           <p className="mt-4 text-xs text-white/50">Sources: Arup case reporting (2024); Ministry of Home Affairs, Rajya Sabha reply; D3COY problem statement citing Gartner (2026).</p>
         </div>
-      </Chapter>
+      </Section>
 
-      <Chapter id="maths" z={5} layers={MATHS_LAYERS} lip={MATHS_LIP} bg="#0f0b2c" className="min-h-[130svh]">
+      <Section id="maths" className="min-h-[130svh]">
         <div className="px-5 sm:px-10 pt-[20vw] lg:pt-[13vw] pb-[22vw] max-w-[88rem] mx-auto text-ink">
           <Reveal><Kicker n="02">The maths</Kicker></Reveal>
           <Reveal delay={0.1}><Title className="mt-5 max-w-[16ch]">A perfect deepfake still has to ask for money.</Title></Reveal>
           <Reveal delay={0.2}><p className="mt-6 text-lg text-white/80 max-w-2xl mb-12">The risk is the evidence that something's fake, multiplied by the damage the request could do. Policy rules set a floor no detector can talk its way under. Pick “A perfect fake”: the maths says 17, the rule says HIGH.</p></Reveal>
           <Reveal delay={0.25}><MathsLab /></Reveal>
         </div>
-      </Chapter>
+      </Section>
 
-      <Chapter id="how" z={4} layers={HOW_LAYERS} lip={HOW_LIP} bg="#0f0b2c" className="min-h-[125svh]">
+      <Section id="how" className="min-h-[125svh]">
         <div className="px-5 sm:px-10 pt-[18vw] lg:pt-[12vw] pb-[42vw] max-w-[88rem] mx-auto">
           <Reveal><Kicker n="03">How it works</Kicker></Reveal>
           <Reveal delay={0.1}><Title className="mt-5 max-w-[14ch]">Five lanterns, one honest answer.</Title></Reveal>
@@ -175,17 +180,17 @@ export default function Landing() {
             ))}
           </ol>
         </div>
-      </Chapter>
+      </Section>
 
-      <Chapter id="verify" z={3} layers={VERIFY_LAYERS} lip={VERIFY_LIP} bg="#130e38" className="min-h-[125svh]">
+      <Section id="verify" shade="center" className="min-h-[125svh]">
         <div className="px-5 sm:px-10 pt-[16vw] lg:pt-[11vw] pb-[20vw] max-w-[80rem] mx-auto">
           <Reveal className="text-center"><div className="flex justify-center"><Kicker n="04">Verify</Kicker></div></Reveal>
           <Reveal delay={0.1}><Title className="mt-5 text-center mx-auto max-w-[16ch]">Don't detect harder. Ask the real person.</Title></Reveal>
           <Reveal delay={0.2} className="mt-14"><PhoneVerify /></Reveal>
         </div>
-      </Chapter>
+      </Section>
 
-      <Chapter id="india" z={2} layers={INDIA_LAYERS} lip={INDIA_LIP} bg="#1a1446" className="min-h-[125svh]">
+      <Section id="india" className="min-h-[125svh]">
         <div className="px-5 sm:px-10 pt-[16vw] lg:pt-[11vw] pb-[22vw] max-w-[88rem] mx-auto grid lg:grid-cols-2 gap-12 lg:gap-16">
           <div>
             <Reveal><Kicker n="05">Bharat-ready</Kicker></Reveal>
@@ -210,9 +215,9 @@ export default function Landing() {
             ))}
           </ul>
         </div>
-      </Chapter>
+      </Section>
 
-      <Chapter id="dawn" z={1} layers={DAWN_LAYERS} bg="#1e1850" className="min-h-[150svh]">
+      <Section id="dawn" shade="center" className="min-h-[150svh]">
         <div className="px-5 sm:px-10 pt-[14vw] lg:pt-[9vw] max-w-[88rem] mx-auto grid md:grid-cols-[1fr_1.4fr] gap-10">
           <Reveal><Kicker n="06">Honest limits</Kicker><Title className="mt-5 !text-[clamp(2.2rem,4.6vw,4.2rem)]">Where it can be wrong</Title></Reveal>
           <ul className="space-y-4 text-lg text-white/85 max-w-prose md:pt-10">
@@ -231,7 +236,7 @@ export default function Landing() {
             </a>
           </Reveal>
         </div>
-      </Chapter>
+      </Section>
     </div>
   );
 }

@@ -68,8 +68,8 @@ backend/
     identity.py       Trust Graph context checks, biometric matches, inr()
   train/, models/     message_clf.joblib (trained by us), univfd_fc.pth
 frontend/             Vite + React 19 + Tailwind v4 + Framer Motion + Three.js
-  src/landing/        Landing.jsx (one scrolling descent in 7 chapters: sunset lake, waterfall into night forest, pool, lantern path,
-                      clearing, Indian skyline, dawn), World.jsx (Chapter parallax engine + procedural SVG scenes), MathsLab.jsx, PhoneVerify.jsx
+  src/landing/        Landing.jsx (sections over one live landscape), SkyWorld.jsx (WebGL2 raymarched terrain, water, clouds, stars,
+                      aurora; scroll flies the camera sunset -> dusk -> night -> aurora -> dawn; ?s=0..1 jumps the flight), MathsLab.jsx, PhoneVerify.jsx
   src/app/            AppShell (frame + top bar + dock), Check, Live, Cases (queue + mule blocklist), People (Trust Graph)
   src/components/     Dock.jsx (Mac-style bottom dock, every page), Defense.jsx (HoldLock, CodeWordCheck, DecoyPanel, MuleList),
                       Verdict.jsx (heat-gauge Stamp, Waterfall, Highlighted, Waveform), Spectrogram3D.jsx, Icons.jsx
