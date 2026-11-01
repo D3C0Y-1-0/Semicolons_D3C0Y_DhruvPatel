@@ -17,7 +17,7 @@ load_dotenv(Path(__file__).parent / ".env")
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile, WebSocket, WebSocketDisconnect  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
-from fastapi.responses import HTMLResponse, PlainTextResponse, Response  # noqa: E402
+from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, Response  # noqa: E402
 
 import codeword  # noqa: E402
 import db  # noqa: E402
@@ -415,6 +415,26 @@ def verify_answer(cid: str, t: str = Form(""), answer: str = Form(...)):
     if not notify.signed(p["id"], "v:" + cid, t) or answer not in ("yes", "no"):
         raise HTTPException(403, "This link isn't valid.")
     return notify.case_page(notify.record_answer(cid, answer, "link"), p, t)
+
+
+DEMO_DIR = Path(__file__).resolve().parent.parent / "demo"
+
+
+@app.get("/samples")
+def samples():
+    """Test media for the demo (demo/ folder, kept out of git): the Check page lists them as one-click samples."""
+    return [{"name": p.name, "kind": "video" if p.suffix in VIDEO_EXT else "audio",
+             "label": ("Face-swap video" if "swap" in p.stem else "Video: " + p.stem.replace("_", " ")) if p.suffix in VIDEO_EXT
+             else ("Cloned voice" if "clone" in p.stem else "Real voice" if "real" in p.stem else p.stem.replace("_", " "))}
+            for p in sorted(DEMO_DIR.glob("*")) if p.suffix in VIDEO_EXT | AUDIO_EXT]
+
+
+@app.get("/samples/{name}")
+def sample_file(name: str):
+    p = DEMO_DIR / Path(name).name  # the name only: nothing outside demo/ can be read
+    if not p.is_file() or p.suffix not in VIDEO_EXT | AUDIO_EXT:
+        raise HTTPException(404)
+    return FileResponse(p)
 
 
 @app.get("/v/{cid}/code")

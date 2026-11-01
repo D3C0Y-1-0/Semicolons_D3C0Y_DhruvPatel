@@ -187,7 +187,10 @@ function ResultCard({ r, status, delivery, needs, caseId, dismissed, open, onAcc
   const who = r.claimed_person?.name.split(" ")[0];
   // plain words only: what it looks like and what to do; the technical evidence lives under "Show details"
   const t = r.scam_types?.[0];
+  const fake = r.synthetic_media && [r.signals.some((x) => x.signal === "face_video" && x.score >= 0.5) && "face looks swapped",
+    r.signals.some((x) => x.signal === "audio_spoof" && x.score >= 0.5) && "voice sounds cloned"].filter(Boolean).join(" and ");
   const reason = r.band === "LOW" ? (r.synthetic_media ? "The media looks synthetic, but nothing risky is being asked." : "No warning signs in the voice, face, words or request.")
+    : fake ? `Deepfake detected: the ${fake}.${t ? ` It looks like ${t.label.replace(/\s*\(.*\)$/, "").toLowerCase()}.` : ""} ${t?.advice || r.recommended_actions[0] || ""}`
     : t ? `Looks like ${t.label.replace(/\s*\(.*\)$/, "").toLowerCase()}. ${t.advice}`
     : r.synthetic_media ? `The voice or face looks fake. ${r.recommended_actions[0] || ""}`
     : r.recommended_actions[0] || "Check with the real person on a number you already know.";

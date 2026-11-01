@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import Verdict from "../components/Verdict.jsx";
-import { api, form } from "../lib/api.js";
+import { API, api, form } from "../lib/api.js";
 import { SAMPLES } from "../lib/samples.js";
 
 import DuskScene from "../components/DuskScene.jsx";
@@ -32,6 +32,43 @@ function DropZone({ file, setFile }) {
         </div>
       )}
       <input ref={input} type="file" accept="audio/*,video/*,image/*" hidden onChange={(e) => e.target.files[0] && setFile(e.target.files[0])} />
+    </div>
+  );
+}
+
+// Demo media in one click: the sample files in demo/ (a face-swap video, cloned and real voices), and a real clip
+// recorded right now with this laptop's camera, so a real video can be checked next to a fake one.
+function TestMedia({ setFile }) {
+  const [list, setList] = useState([]);
+  const [rec, setRec] = useState("");
+  useEffect(() => { api("/samples").then(setList).catch(() => {}); }, []);
+  const load = async (s) => {
+    const blob = await (await fetch(`${API}/samples/${encodeURIComponent(s.name)}`)).blob();
+    setFile(new File([blob], s.name, { type: blob.type }));
+  };
+  const record = async () => {
+    let stream;
+    try { stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: true }); }
+    catch { setRec("Camera or microphone blocked: allow them for this site."); return; }
+    const type = ["video/webm;codecs=vp8,opus", "video/webm", "video/mp4"].find((t) => MediaRecorder.isTypeSupported(t)) || "";
+    const mr = new MediaRecorder(stream, type ? { mimeType: type } : {}), parts = [];
+    mr.ondataavailable = (e) => e.data.size && parts.push(e.data);
+    const stopped = new Promise((r) => (mr.onstop = r));
+    mr.start();
+    for (let n = 7; n > 0; n--) { setRec(`Recording… ${n} s. Look at the camera and talk.`); await new Promise((r) => setTimeout(r, 1000)); }
+    mr.stop(); await stopped; stream.getTracks().forEach((t) => t.stop());
+    const mime = mr.mimeType || "video/webm";
+    setFile(new File([new Blob(parts, { type: mime })], mime.includes("mp4") ? "real_camera.mp4" : "real_camera.webm", { type: mime }));
+    setRec("");
+  };
+  return (
+    <div>
+      <p className="label mb-2">Test media</p>
+      <div className="flex flex-wrap gap-1.5">
+        {list.map((s) => <button type="button" key={s.name} className="chip" onClick={() => load(s)}>{s.label}</button>)}
+        <button type="button" className="chip" onClick={record} disabled={!!rec}>Record a real video (7 s)</button>
+      </div>
+      {rec && <p className="text-[12.5px] text-night font-semibold mt-1.5" aria-live="polite">{rec}</p>}
     </div>
   );
 }
@@ -87,6 +124,7 @@ export default function Check() {
           <textarea value={v.text} onChange={set("text")} rows={6} className="field resize-none leading-relaxed" placeholder="Paste the WhatsApp, SMS or email text, or notes from the call" />
         </label>
         <DropZone file={file} setFile={setFile} />
+        <TestMedia setFile={setFile} />
         <div className="grid grid-cols-2 gap-3">
           <label className="block space-y-1.5"><span className="label">Arrived via</span>
             <select value={v.channel} onChange={set("channel")} className="field capitalize">{CHANNELS.map((c) => <option key={c} value={c}>{c === "sms" ? "SMS" : c}</option>)}</select>
