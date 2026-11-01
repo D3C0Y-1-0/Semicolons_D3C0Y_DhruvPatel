@@ -480,8 +480,9 @@ def me_page(pid: str, t: str = ""):
 def me_code(pid: str, t: str = ""):
     if not db.get_person(pid) or not notify.signed(pid, "me", t):
         raise HTTPException(403)
+    pending, history = notify.pending_for(pid)
     return {"phrase": codeword.phrase(db.code_secret(pid)), "seconds_left": codeword.seconds_left(),
-            "pending": notify.pending_for(pid)}
+            "pending": pending, "history": history}
 
 
 @app.post("/people/{pid}/invite")

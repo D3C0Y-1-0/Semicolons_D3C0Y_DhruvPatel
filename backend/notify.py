@@ -147,19 +147,32 @@ def approver_link(case, pid):
     return f"{public_url()}/a/{case['id']}/{pid}?t={sign(pid, 'a:' + case['id'])}"
 
 
+def _summary(c):
+    r = c["result"]
+    amount = (r.get("facts") or {}).get("amount_inr")
+    when = time.strftime("%d %b, %H:%M", time.localtime(c["created"]))
+    return (f"{when}: a request for {r.get('action', 'action').replace('_high', '').replace('_', ' ')}"
+            + (f" of {inr(amount)}" if amount else "") + f" via {r.get('channel') or 'unknown channel'}")
+
+
 def pending_for(pid):
-    """Requests in this person's name waiting for their YES / NO, in plain words."""
-    out = []
+    """This person's dashboard: requests in their name waiting for them, second approvals asked of them,
+    and their last decisions, in plain words."""
+    pending, history = [], []
     for row in db.list_cases(200):
-        if row["claimed_person_id"] == pid and row["status"] == "verifying":
+        mine, asked = row["claimed_person_id"] == pid, None
+        if not mine and row["status"] == "verifying":
             c = db.get_case(row["id"])
-            r = c["result"]
-            amount = (r.get("facts") or {}).get("amount_inr")
-            when = time.strftime("%d %b, %H:%M", time.localtime(c["created"]))
-            out.append({"summary": f"{when}: a request for {r.get('action', 'action').replace('_high', '').replace('_', ' ')}"
-                        + (f" of {inr(amount)}" if amount else "") + f" via {r.get('channel') or 'unknown channel'}",
-                        "link": case_link(c, pid)})
-    return out
+            asked = (c["result"].get("approver_asked") or {}).get("id") == pid and c
+        if not (mine or asked):
+            continue
+        c = asked or db.get_case(row["id"])
+        if row["status"] == "verifying":
+            pending.append({"summary": ("Second approval: " if asked else "") + _summary(c),
+                            "link": approver_link(c, pid) if asked else case_link(c, pid)})
+        elif row["status"] in ("verified", "confirmed_attack") and len(history) < 5:
+            history.append({"summary": _summary(c), "status": "approved" if row["status"] == "verified" else "blocked as an attack"})
+    return pending, history
 
 
 # --- Pages for the real person's phone: no app, no login, the signed link is the key --------------------------------
@@ -281,7 +294,8 @@ def me_page(person, token):
 async function tick(){{try{{const r=await fetch('/me/{pid}/code?t={html.escape(token)}');const d=await r.json();
 document.getElementById('code').textContent=d.phrase;document.getElementById('left').textContent='Changes in '+d.seconds_left+' s';
 document.getElementById('bar').style.width=(d.seconds_left/30*100)+'%';
-document.getElementById('pending').innerHTML=d.pending.length?'<div class="req">Waiting for your answer:<ul>'+d.pending.map(p=>'<li><a href="'+p.link+'">'+p.summary+'</a></li>').join('')+'</ul></div>':'';
+document.getElementById('pending').innerHTML=(d.pending.length?'<div class="req">Waiting for your answer:<ul>'+d.pending.map(p=>'<li><a href="'+p.link+'">'+p.summary+'</a></li>').join('')+'</ul></div>':'<p>Nothing is waiting for your answer.</p>')
++(d.history.length?'<p style="margin-top:18px"><b>Your recent decisions</b></p><ul>'+d.history.map(h=>'<li>'+h.summary+' <b style="color:var(--'+(h.status==='approved'?'low':'high')+')">'+h.status+'</b></li>').join('')+'</ul>':'');
 }}catch(e){{document.getElementById('left').textContent='Offline, retrying…'}}}}
 tick();setInterval(tick,1000);
 </script>""")

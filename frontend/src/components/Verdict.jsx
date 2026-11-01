@@ -249,7 +249,7 @@ export default function Verdict({ result: r, caseId, initialStatus = "open", sim
 
   useEffect(() => {
     if (status !== "verifying") return;
-    const t = setInterval(async () => sync(await api(`/cases/${caseId}`)), 2000);
+    const t = setInterval(async () => { try { sync(await api(`/cases/${caseId}`)); } catch { /* backend restarting: try again next tick */ } }, 2000);
     return () => clearInterval(t);
   }, [status, caseId]);
 

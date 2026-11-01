@@ -127,15 +127,20 @@ one plain reason from the scam type's advice, Accept / Reject) and opens everyth
 the Security queue passes `simple={false}` for the full view. Accept on MEDIUM/HIGH first offers "Ask {name} to confirm" or
 "Accept anyway"; Reject on MEDIUM/HIGH reports a scam (decision no), on LOW it only dismisses so harmless senders never reach
 the mule blocklist. On phones the page scrolls to the card after a check.
-6. Planned after mentor feedback (1 Nov), NOT built yet, team said wait: a hacked phone or leaked sign-in can answer YES today
-   (one YES releases the hold early). Planned answers, in order:
-   a. Video YES on the /v phone page: 5 s clip saying the live code word + a random move picked on screen; passes only if GenD
-      (not a swap), InsightFace (enrolled face), pellav2 (not cloned), ECAPA (enrolled voice), Whisper (says the code word) and
-      lip-sync all pass; clip deleted after scoring. Defeats replay (fresh words) and leaked passwords.
-   b. Per-person dashboard behind company sign-in: each employee sees requests made in their name and answers YES/NO there.
-   c. Rules: above the approval limit YES must come from two channels (phone link + dashboard) or a second approver
-      (maker-checker); the 30-min hold cannot be skipped for big amounts; a YES that is too fast / new device / odd location
-      counts as NO; every YES is announced on a second channel and to security; top tier gets a human callback.
+Built 1 Nov afternoon (mentor: "what if the phone is hacked or the login leaked?"):
+   - Rules in notify.record_answer: one tap of YES releases only a small request. Above the person's approval limit (or a
+     payment_high), and for a YES under FAST_YES_SECONDS (8) after /verify, the case stays "verifying" with result.needs
+     until a video YES (via="video") or a YES from both the person and a second approver. NO from anyone blocks at once.
+     Tests: python test_answer_rules.py.
+   - Video YES (videoyes.py, POST /v/{case}/video, page step in notify.video_step): 5 s selfie clip saying the live code
+     word + a random move; passes only if GenD, face match, pellav2, voiceprint, Whisper heard the code word (last 3 windows)
+     and lip-sync all pass; a check that can't run fails; clip transcoded to MP4, scored, deleted. The move isn't verified.
+   - Second approver: POST /cases/{case}/approver (limit must cover the amount), signed page /a/{case}/{person}.
+   - Dashboard: /me/{person} shows the code word, requests waiting (incl. second approvals) and recent decisions.
+   - Tested: rules unit test, edge cases, full flow through the tunnel (face-swap demo clip rejected on all 6 checks,
+     second approver released it), console panel. NOT tested yet: a real person's video YES passing. Nobody has a face or
+     voice enrolled, so every video YES fails "not enrolled" until someone enrols a photo + voice sample in Trust Graph.
+6. Still open from the mentor round: every YES announced on a second channel and to security; human callback for the top tier.
 
 ## Conventions
 
