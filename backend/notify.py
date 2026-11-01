@@ -140,7 +140,7 @@ def record_answer(cid, ans, via, approver=None):
         return db.update_case(cid, status="verified",
                               result_patch={"answers": answers, "verification": {"answer": "yes", "at": now, "via": via}})
     return db.update_case(cid, status="verifying",
-                          result_patch={"answers": answers, "needs": {"why": why, "what": "a 5-second video YES or a second approver"}})
+                          result_patch={"answers": answers, "needs": {"why": why, "what": "a 7-second video YES or a second approver"}})
 
 
 def approver_link(case, pid):
@@ -228,11 +228,11 @@ def case_page(case, person, token, approver_for=None):
 
 
 VIDEO_STEP = """<h1>One more step, __FIRST__.</h1>
-<p>Because __WHY__, a tap isn't enough: a hacked phone could tap YES too. Record a 5-second video so we can check it's really you.</p>
+<p>Because __WHY__, a tap isn't enough: a hacked phone could tap YES too. Record a 7-second video so we can check it's really you.</p>
 <div class="req">Look at the camera and say:<div class="code" id="code" style="font-size:32px">…</div>“I approve this request.”<br>
 While you speak: <b>__MOVE__</b>.</div>
 <video id="cam" playsinline muted autoplay style="width:100%;margin-top:14px;border-radius:20px;background:#1c1838;aspect-ratio:3/4;object-fit:cover"></video>
-<div class="row"><button class="yes" id="rec" type="button">Record 5 seconds</button></div>
+<div class="row"><button class="yes" id="rec" type="button">Record 7 seconds</button></div>
 <p id="st" aria-live="polite"></p><ul id="res"></ul>
 <form method="post" class="row"><input type="hidden" name="t" value="__T__"><button class="no" name="answer" value="no">NO, it wasn't me</button></form>
 <p style="font-size:13px">The video is checked for a face swap, a cloned voice, your enrolled face and voice, the code word and lip movement, then deleted.</p>
@@ -249,9 +249,9 @@ $("rec").onclick = async () => {
   const mr = new MediaRecorder(stream, type ? { mimeType: type } : {}), parts = [];
   mr.ondataavailable = (e) => e.data.size && parts.push(e.data);
   $("rec").disabled = true; $("res").innerHTML = "";
-  let n = 5; $("st").textContent = "Recording… 5";
+  let n = 7; $("st").textContent = "Recording… 7";
   const iv = setInterval(() => { n -= 1; $("st").textContent = n > 0 ? "Recording… " + n : "Sending…"; }, 1000);
-  mr.start(); await new Promise((r) => setTimeout(r, 5200));
+  mr.start(); await new Promise((r) => setTimeout(r, 7200));
   const stopped = new Promise((r) => (mr.onstop = r)); mr.stop(); await stopped;
   clearInterval(iv); stream.getTracks().forEach((t) => t.stop());
   const mime = mr.mimeType || type || "video/webm", fd = new FormData();

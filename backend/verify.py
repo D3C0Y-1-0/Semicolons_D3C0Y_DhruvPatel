@@ -48,7 +48,7 @@ def _on_callback(cq):
         ans = case["result"]["verification"]["answer"]
     if case and case["status"] == "verifying" and ans == "yes":  # a big request: a tap isn't enough, ask for the video YES
         why = "; ".join(case["result"].get("needs", {}).get("why", []))
-        text = (f"Thanks. One more step: because {why}, a tap isn't enough. Record a 5-second video YES here: "
+        text = (f"Thanks. One more step: because {why}, a tap isn't enough. Record a 7-second video YES here: "
                 + notify.case_link(case, case["claimed_person_id"]))
     else:
         text = "Recorded: " + ("you confirmed the request." if ans == "yes" else "NOT you. The payment is on hold and security has been alerted.")

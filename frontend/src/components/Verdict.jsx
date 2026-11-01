@@ -174,7 +174,7 @@ function Needs({ needs, r, caseId, delivery, onVerify }) {
   return (
     <div className="rounded-xl border border-high/40 bg-high/5 p-4 space-y-3">
       <p className="text-[15px]"><b>A tap isn't enough here</b> because {needs.why.join("; ")}.</p>
-      <p className="text-[14px] text-ink-soft">The payment stays on hold until {who} records a 5-second video YES on their phone, or a second approver approves too.</p>
+      <p className="text-[14px] text-ink-soft">The payment stays on hold until {who} records a 7-second video YES on their phone, or a second approver approves too.</p>
       {delivery ? <SendLinks delivery={delivery} who={who} qr={delivery.link} qrLabel={`${who} scans to record the video YES`} />
         : r.claimed_person && <button type="button" onClick={onVerify} className="btn btn-plain">Send {who} the video YES link</button>}
       <SecondApprover caseId={caseId} r={r} />

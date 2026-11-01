@@ -437,12 +437,13 @@ async def verify_video(cid: str, t: str = Form(""), video: UploadFile = File(...
     path = await _save(video)
     try:
         if os.path.getsize(path) > 30 * 1024 * 1024:
-            raise HTTPException(413, "That video is too long. Record 5 seconds.")
+            raise HTTPException(413, "That video is too long. Record 7 seconds.")
         out = await asyncio.to_thread(videoyes.score, path, p)
     finally:
         os.remove(path)  # privacy: the face and voice clip is never kept
-    tries = c["result"].get("video_tries", []) + [{"at": round(time.time()), "passed": out["passed"],
-                                                   "failed": [x["name"] for x in out["checks"] if not x["ok"]]}]
+    tries = c["result"].get("video_tries", []) + [{"at": round(time.time()), "passed": out["passed"],  # scores and words, never media
+                                                   "failed": [x["name"] for x in out["checks"] if not x["ok"]],
+                                                   "checks": [f"{'PASS' if x['ok'] else 'FAIL'} {x['name']}: {x['detail']}" for x in out["checks"]]}]
     db.update_case(cid, result_patch={"video_tries": tries})
     if out["passed"]:
         c = notify.record_answer(cid, "yes", "video")

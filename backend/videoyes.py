@@ -1,4 +1,4 @@
-"""Video YES: the real person proves the YES is theirs with a 5-second selfie video.
+"""Video YES: the real person proves the YES is theirs with a 7-second selfie video.
 
 A hacked phone or a leaked password can tap YES. It can't show the person's own live face and voice saying a code word
 that didn't exist a minute ago. The clip passes only if every check passes; a check that can't run counts as a fail
@@ -15,6 +15,7 @@ import time
 
 import codeword
 import db
+from difflib import SequenceMatcher
 
 MOVES = ["turn your head slowly to the left and back", "turn your head slowly to the right and back",
          "look up, then back at the camera", "nod twice", "touch your right cheek", "raise one hand next to your face"]
@@ -24,11 +25,16 @@ def pick_move():
     return random.choice(MOVES)
 
 
+def _heard(word, words):
+    """Speech recognition mishears invented word pairs ("copper" as "cooper"): a clearly similar word counts."""
+    return any(w == word or SequenceMatcher(None, w, word).ratio() >= 0.8 for w in words)
+
+
 def heard_code(secret, transcript, t=None):
     """Both code words appear in what was said. The last three windows count: recording and upload take time."""
     words = set(re.findall(r"[a-z]+", (transcript or "").lower()))
     t = time.time() if t is None else t
-    return any(set(codeword.phrase(secret, t - k * codeword.STEP).split()) <= words for k in range(3))
+    return any(all(_heard(w, words) for w in codeword.phrase(secret, t - k * codeword.STEP).split()) for k in range(3))
 
 
 def _check(name, sig, missing, ok_why, bad_why):
@@ -78,6 +84,7 @@ def demo():
     assert heard_code(s, codeword.phrase(s, now - 2 * codeword.STEP), now)                      # a minute late still counts
     assert not heard_code(s, codeword.phrase(s, now - 4 * codeword.STEP), now)                  # an old recording doesn't
     assert not heard_code(s, p.split()[0], now) and not heard_code(s, "", now)                  # one word isn't enough
+    assert _heard("copper", {"cooper"}) and not _heard("copper", {"paper", "cup"})                # near-misses, not guesses
     c = _check("x", {"score": None}, "missing", "ok", "bad")
     assert not c["ok"] and c["detail"] == "missing"
     assert _check("x", {"score": 0.1}, "m", "ok", "bad")["ok"] and not _check("x", {"score": 0.9}, "m", "ok", "bad")["ok"]
