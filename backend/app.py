@@ -424,7 +424,7 @@ DEMO_DIR = Path(__file__).resolve().parent.parent / "demo"
 def samples():
     """Test media for the demo (demo/ folder, kept out of git): the Check page lists them as one-click samples."""
     return [{"name": p.name, "kind": "video" if p.suffix in VIDEO_EXT else "audio",
-             "label": ("Face-swap video" if "swap" in p.stem else "Video: " + p.stem.replace("_", " ")) if p.suffix in VIDEO_EXT
+             "label": ("Face-swap call" if "swap" in p.stem else p.stem.replace("_", " ").capitalize()) if p.suffix in VIDEO_EXT
              else ("Cloned voice" if "clone" in p.stem else "Real voice" if "real" in p.stem else p.stem.replace("_", " "))}
             for p in sorted(DEMO_DIR.glob("*")) if p.suffix in VIDEO_EXT | AUDIO_EXT]
 

@@ -189,7 +189,8 @@ function ResultCard({ r, status, delivery, needs, caseId, dismissed, open, onAcc
   const t = r.scam_types?.[0];
   const fake = r.synthetic_media && [r.signals.some((x) => x.signal === "face_video" && x.score >= 0.5) && "face looks swapped",
     r.signals.some((x) => x.signal === "audio_spoof" && x.score >= 0.5) && "voice sounds cloned"].filter(Boolean).join(" and ");
-  const reason = r.band === "LOW" ? (r.synthetic_media ? "The media looks synthetic, but nothing risky is being asked." : "No warning signs in the voice, face, words or request.")
+  const reason = r.band === "LOW" ? (fake ? `The ${fake}. Nothing risky is being asked, so the risk is low, but don't trust or forward this video as real.`
+      : r.synthetic_media ? "The media looks synthetic, but nothing risky is being asked." : "No warning signs in the voice, face, words or request.")
     : fake ? `Deepfake detected: the ${fake}.${t ? ` It looks like ${t.label.replace(/\s*\(.*\)$/, "").toLowerCase()}.` : ""} ${t?.advice || r.recommended_actions[0] || ""}`
     : t ? `Looks like ${t.label.replace(/\s*\(.*\)$/, "").toLowerCase()}. ${t.advice}`
     : r.synthetic_media ? `The voice or face looks fake. ${r.recommended_actions[0] || ""}`
@@ -204,7 +205,7 @@ function ResultCard({ r, status, delivery, needs, caseId, dismissed, open, onAcc
       <div className={`${BAND_BG[r.band]} text-white px-6 py-5 flex items-center justify-between gap-4`}>
         <div className="min-w-0">
           <p className="text-[12.5px] font-bold uppercase tracking-[0.16em] opacity-90">{r.band} risk</p>
-          <p className="display text-[30px] sm:text-[36px] font-extrabold leading-[1.05] tracking-tight">{ANSWER[r.band]}</p>
+          <p className="display text-[30px] sm:text-[36px] font-extrabold leading-[1.05] tracking-tight">{r.band === "LOW" && r.synthetic_media ? "Deepfake detected." : ANSWER[r.band]}</p>
         </div>
         <p className="display text-[44px] font-extrabold leading-none tnum shrink-0">{Math.floor(r.risk)}<span className="text-[15px] font-semibold opacity-80">/100</span></p>
       </div>
