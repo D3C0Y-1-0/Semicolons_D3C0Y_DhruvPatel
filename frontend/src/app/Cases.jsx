@@ -22,7 +22,7 @@ export default function Cases() {
   if (open) return (
     <div className="space-y-6">
       <button onClick={() => setOpen(null)} className="btn btn-plain">‹ Back to the queue</button>
-      <Verdict result={open.result} caseId={open.id} initialStatus={open.status} />
+      <Verdict result={open.result} caseId={open.id} initialStatus={open.status} simple={false} />
     </div>
   );
 

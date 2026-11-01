@@ -49,6 +49,14 @@ export default function Check() {
   const set = (k) => (e) => { setV({ ...v, [k]: e.target.value }); if (k === "text") setSample(""); };
 
   useEffect(() => { api("/people").then(setPeople).catch(() => {}); }, []);
+  // on a phone the result sits under the form: take the person straight to the answer
+  const resultRef = useRef();
+  useEffect(() => {
+    if (!result || innerWidth >= 1024) return;
+    // wait for the "checking" panel to leave and the card to mount, or the layout shift cuts the scroll short
+    const t = setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 450);
+    return () => clearTimeout(t);
+  }, [result]);
 
   async function submit(e) {
     e?.preventDefault();
@@ -105,7 +113,7 @@ export default function Check() {
         {error && <p className="text-[13px] text-high" role="alert">{error}</p>}
       </form>
 
-      <section aria-live="polite" className="min-w-0">
+      <section ref={resultRef} aria-live="polite" className={`min-w-0 scroll-mt-10 ${result ? "max-lg:min-h-[100svh]" : ""}`}>
         <AnimatePresence mode="wait">
           {busy ? (
             <motion.div key="busy" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="glass p-8">

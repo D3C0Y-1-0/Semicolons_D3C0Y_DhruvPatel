@@ -2,6 +2,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { api, form } from "../lib/api.js";
 import { CodeWordCheck, DecoyPanel, HoldLock, SendLinks } from "./Defense.jsx";
+// ponytail: simple vs full is a prop per page (Check = simple, Security queue = full); a per-user role setting when logins exist
 
 export const BAND_TEXT = { LOW: "text-low", MEDIUM: "text-medium", HIGH: "text-high" };
 export const BAND_BORDER = { LOW: "border-low", MEDIUM: "border-medium", HIGH: "border-high" };
@@ -132,10 +133,72 @@ export function Waveform({ peaks = [], timeline = [], frames = [], duration }) {
   );
 }
 
-export default function Verdict({ result: r, caseId, initialStatus = "open" }) {
+// The answer first, for someone who only wants to know whether to act: the band, one reason, Accept or Reject.
+// Everything else waits behind "Show details". Accepting a MEDIUM or HIGH result asks the real person first.
+const BAND_BG = { LOW: "bg-low", MEDIUM: "bg-medium", HIGH: "bg-high" };
+const ANSWER = { HIGH: "Don't act on this.", MEDIUM: "Pause and verify first.", LOW: "Looks safe to go ahead." };
+
+function ResultCard({ r, status, delivery, dismissed, open, onAccept, onReject, onVerify, onToggle }) {
+  const [confirming, setConfirming] = useState(false);
+  const who = r.claimed_person?.name.split(" ")[0];
+  // plain words only: what it looks like and what to do; the technical evidence lives under "Show details"
+  const t = r.scam_types?.[0];
+  const reason = r.band === "LOW" ? (r.synthetic_media ? "The media looks synthetic, but nothing risky is being asked." : "No warning signs in the voice, face, words or request.")
+    : t ? `Looks like ${t.label.replace(/\s*\(.*\)$/, "").toLowerCase()}. ${t.advice}`
+    : r.synthetic_media ? `The voice or face looks fake. ${r.recommended_actions[0] || ""}`
+    : r.recommended_actions[0] || "Check with the real person on a number you already know.";
+  const done = status === "verified" ? ["text-low", "Accepted. The case is closed as verified."]
+    : status === "confirmed_attack" ? ["text-high", "Rejected and reported as a scam. Don't reply, pay or share anything."]
+    : dismissed ? ["text-ink-soft", "Rejected. Nothing was reported."] : null;
+  const big = "btn h-12 text-[15px] w-full";
+
+  return (
+    <section className="glass-strong overflow-hidden !p-0" aria-live="polite">
+      <div className={`${BAND_BG[r.band]} text-white px-6 py-5 flex items-center justify-between gap-4`}>
+        <div className="min-w-0">
+          <p className="text-[12.5px] font-bold uppercase tracking-[0.16em] opacity-90">{r.band} risk</p>
+          <p className="display text-[30px] sm:text-[36px] font-extrabold leading-[1.05] tracking-tight">{ANSWER[r.band]}</p>
+        </div>
+        <p className="display text-[44px] font-extrabold leading-none tnum shrink-0">{Math.floor(r.risk)}<span className="text-[15px] font-semibold opacity-80">/100</span></p>
+      </div>
+      <div className="p-6 space-y-5">
+        <p className="text-[17px] leading-relaxed max-w-prose">{reason}</p>
+        {r.hold_until && !done && r.band === "HIGH" && <p className="text-[14px] font-semibold text-high">The payment is on hold for 30 minutes.</p>}
+        {done ? <p className={`text-[16px] font-bold ${done[0]}`}>{done[1]}</p>
+          : status === "verifying" ? (
+            <div className="space-y-3">
+              <p className="text-[16px] font-semibold">Waiting for {who || "the real person"} to answer YES or NO on their own phone…</p>
+              <SendLinks delivery={delivery} who={who || "them"} qr={delivery?.link} qrLabel="In the room? Scan to answer" />
+            </div>
+          ) : confirming ? (
+            <div className="rounded-xl border border-rule p-4 space-y-3">
+              <p className="text-[15px]">TrustCheck rates this <b className={BAND_TEXT[r.band]}>{r.band}</b>. Only accept once the real person confirms it was them.</p>
+              <div className="flex flex-wrap gap-2">
+                {r.claimed_person && <button type="button" onClick={onVerify} className="btn btn-primary">Ask {who} to confirm</button>}
+                <button type="button" onClick={onAccept} className="btn btn-plain">Accept anyway</button>
+                <button type="button" onClick={() => setConfirming(false)} className="btn btn-plain">Back</button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <button type="button" onClick={r.band === "LOW" ? onAccept : () => setConfirming(true)} className={`${big} ${r.band === "LOW" ? "btn-primary" : "btn-plain"}`}>Accept</button>
+              <button type="button" onClick={onReject} className={`${big} ${r.band === "LOW" ? "btn-plain" : "text-white bg-high hover:brightness-110"}`}>Reject</button>
+            </div>
+          )}
+        <button type="button" onClick={onToggle} aria-expanded={open} className="text-[14px] font-semibold text-night underline-offset-4 hover:underline">
+          {open ? "Hide details" : "Show details: why, evidence and next steps"}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+export default function Verdict({ result: r, caseId, initialStatus = "open", simple = true }) {
   const [status, setStatus] = useState(initialStatus);
   const [msg, setMsg] = useState("");
   const [delivery, setDelivery] = useState(null);
+  const [open, setOpen] = useState(!simple);
+  const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
     if (status !== "verifying") return;
@@ -151,9 +214,18 @@ export default function Verdict({ result: r, caseId, initialStatus = "open" }) {
     Object.assign(document.createElement("a"), { href: URL.createObjectURL(new Blob([text], { type: "text/markdown" })), download: `cert-in-${caseId}.md` }).click();
   });
   const duration = r.duration || 1;
+  // Reject on LOW only dismisses: a harmless sender must never land on the mule blocklist.
+  const reject = () => (r.band === "LOW" ? setDismissed(true) : decide("no"));
+
+  const card = simple && (
+    <ResultCard r={r} status={status} delivery={delivery} dismissed={dismissed} open={open}
+      onAccept={() => decide("yes")} onReject={reject} onVerify={verify} onToggle={() => setOpen(!open)} />
+  );
+  if (simple && !open) return <article className="space-y-3">{card}{msg && <p className="text-sm text-high">{msg}</p>}</article>;
 
   return (
     <article className="space-y-6">
+      {card}
       <header className="grid sm:grid-cols-[auto_1fr] gap-6 items-start">
         <Stamp band={r.band} risk={r.risk} />
         <div>
