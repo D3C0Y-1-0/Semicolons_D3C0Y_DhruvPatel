@@ -247,7 +247,10 @@ export default function SkyWorld({ className = "" }) {
       if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; gl.viewport(0, 0, w, h); }
     };
     const target = () => { const max = document.documentElement.scrollHeight - innerHeight; return max > 0 ? Math.min(1, Math.max(0, scrollY / max)) : 0; };
-    const forced = parseFloat(new URLSearchParams(location.search).get("s")); // ?s=0.5 jumps the flight (demo/debug knob)
+    const q = new URLSearchParams(location.search);
+    const forced = parseFloat(q.get("s"));   // ?s=0.5 jumps the flight (demo/debug knob)
+    const pinned = parseFloat(q.get("res")); // ?res=1 pins the render scale (screenshots, slow projectors)
+    if (Number.isFinite(pinned)) scale = pinned;
     s = s1 = target();
     const move = (e) => { tmx = (e.clientX / innerWidth) * 2 - 1; tmy = -((e.clientY / innerHeight) * 2 - 1); };
     addEventListener("pointermove", move, { passive: true });
@@ -261,7 +264,7 @@ export default function SkyWorld({ className = "" }) {
       s1 += (target() - s1) * e; s = Number.isFinite(forced) ? forced : s + (s1 - s) * e;
       mx += (tmx - mx) * Math.min(1, dt * 2); my += (tmy - my) * Math.min(1, dt * 2);
       avg = avg * 0.92 + dt * 1000 * 0.08;
-      if (++frames % 40 === 0) {                         // hold 60 fps by trading resolution
+      if (!Number.isFinite(pinned) && ++frames % 40 === 0) {                         // hold 60 fps by trading resolution
         if (avg > 19 && scale > 0.3) scale -= 0.05; else if (avg < 17.2 && scale < (phone ? 0.5 : 0.72)) scale += 0.02;
       }
       size();
