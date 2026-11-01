@@ -6,3 +6,6 @@ eval/results.csv
 
 # face-swap sample is built from a third-party image; keep it local
 demo/*.mp4
+
+# browser-test output
+.playwright-mcp/
