@@ -242,7 +242,10 @@ async function code() { try { $("code").textContent = (await (await fetch(`/v/${
 code(); setInterval(code, 3000);
 $("rec").onclick = async () => {
   let stream;
-  try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: true }); }
+  // raw microphone: the browser's echo cancellation, noise suppression and auto-gain make a real voice sound synthetic
+  // to the clone detector and unlike the enrolled recording
+  const raw = { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 };
+  try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: raw }); }
   catch (e) { $("st").textContent = "The camera or microphone is blocked. Allow both for this page and try again."; return; }
   $("cam").srcObject = stream;
   const type = ["video/webm;codecs=vp8,opus", "video/webm", "video/mp4"].find((t) => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || "";
