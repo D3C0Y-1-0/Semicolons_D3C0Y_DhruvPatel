@@ -1,11 +1,13 @@
-import { AnimatePresence, motion } from "framer-motion";
-import { useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useEffect, useState } from "react";
 import Dock from "../components/Dock.jsx";
 import Icon from "../components/Icons.jsx";
 import MathsLab from "./MathsLab.jsx";
 import PhoneVerify from "./PhoneVerify.jsx";
-
-import DuskScene from "../components/DuskScene.jsx";
+import {
+  Chapter, WorldDefs, HERO_LAYERS, HERO_LIP, PROBLEM_LAYERS, PROBLEM_LIP, MATHS_LAYERS, MATHS_LIP,
+  HOW_LAYERS, HOW_LIP, VERIFY_LAYERS, VERIFY_LIP, INDIA_LAYERS, INDIA_LIP, DAWN_LAYERS,
+} from "./World.jsx";
 
 // What the floating call card says as the scan crosses the voice
 const CALL = {
@@ -29,192 +31,207 @@ const PIPELINE = [
   ["Verify", "Before anything moves, the real person confirms on the phone they enrolled. A NO holds the payment.", "YES/NO by email or QR, payment hold, CERT-In draft, campaign clustering"],
 ];
 
-function Hero() {
-  const [phase, setPhase] = useState("scanning");
-  const call = CALL[phase];
-  const hot = phase !== "scanning";
+const NAV = [["The problem", "#problem"], ["The maths", "#maths"], ["How it works", "#how"], ["Verify", "#verify"]];
+
+// text rises into place as each chapter arrives
+function Reveal({ children, delay = 0, className = "" }) {
   return (
-    <section className="relative min-h-[100svh] px-3 sm:px-6 pt-16 pb-28 lg:pb-24 flex flex-col">
-      {/* outer corners, like a print */}
-      <div className="absolute inset-x-4 sm:inset-x-8 top-4 flex justify-between text-sm sm:text-base">
-        <a href="#/" className="text-xl font-extrabold tracking-tight">TrustCheck</a>
-        <span className="text-ink-soft font-semibold">Team Semicolons, D3COY 2026</span>
-      </div>
-
-      <div className="frame dusk relative flex-1 max-w-[88rem] w-full mx-auto overflow-hidden min-h-[40rem]">
-          <DuskScene onPhase={setPhase} className="absolute inset-0" />
-
-        {/* top bar: what this call claims */}
-        <div className="relative z-10 flex items-start justify-between gap-3 p-3 sm:p-5">
-          <a href="#how" className="glass-strong rounded-full pl-5 pr-2 py-2 font-semibold hidden sm:inline-flex items-center gap-3">
-            How it works<span className="orb size-8 bg-night text-white"><Icon name="arrow" className="size-4" /></span>
-          </a>
-          <dl className="glass-strong rounded-full px-5 py-2.5 hidden md:flex gap-7 text-sm">
-            {[["phone", "Arrived via", "WhatsApp video"], ["user", "Claims to be", "Rajesh Kumar, CFO"], ["rupee", "Asking for", "₹45,00,000"]].map(([ic, k, v]) => (
-              <div key={k} className="flex items-center gap-2.5">
-                <Icon name={ic} className="size-4 text-ink-soft" />
-                <div><dt className="text-[0.7rem] text-ink-soft leading-none">{k}</dt><dd className="font-bold">{v}</dd></div>
-              </div>
-            ))}
-          </dl>
-          <a href="#/app/check" className="glass-strong rounded-full pl-5 pr-2 py-2 font-semibold inline-flex items-center gap-3 ml-auto md:ml-0">
-            Open console<span className="orb size-8 bg-night text-white"><Icon name="arrow" className="size-4" /></span>
-          </a>
-        </div>
-
-        <motion.h1 className="relative z-[5] text-center text-white font-semibold tracking-[-0.04em] leading-[0.92] px-4 mt-4 sm:mt-6 text-[clamp(2.4rem,6.3vw,6.6rem)] drop-shadow-[0_3px_22px_rgb(35_22_94/0.6)]"
-          initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, ease: [0.2, 0.8, 0.2, 1] }}>
-          <span className={`block opacity-90 ${phase === "flagging" ? "glitching" : ""}`}>The voice sounds like your CFO.</span>
-          <span className={`block transition-colors duration-700 ${hot ? "text-night" : "text-white/70"}`}>The request doesn't.</span>
-        </motion.h1>
-
-        {/* bottom-left: the pitch, with a cut-out corner */}
-        <div className="absolute z-10 left-0 bottom-0 w-[min(26rem,100%)] glass-strong rounded-tr-[2.75rem] p-6 sm:p-7 hidden lg:block">
-          <h2 className="text-xl font-bold">Check before you act</h2>
-          <p className="mt-2 text-sm text-ink-soft leading-relaxed">TrustCheck checks the voice, the face, the words and what's actually being asked, then makes you verify with the real person before money or data moves.</p>
-          <div className="mt-5 flex items-end justify-between gap-4">
-            <p><span className="block text-5xl font-extrabold tracking-tight tnum">₹1,935 cr</span><span className="text-sm font-semibold">lost to digital-arrest scams in 2024</span></p>
-            <a href="#problem" aria-label="Read about the problem" className="orb size-12 bg-white border border-rule hover:bg-sheet shrink-0"><Icon name="arrow" /></a>
-          </div>
-        </div>
-
-        {/* right: the call being scanned, live */}
-        <div className="absolute z-10 right-3 sm:right-5 bottom-24 lg:bottom-5 w-[min(21rem,calc(100%-1.5rem))] glass rounded-[2rem] p-5 sm:p-6">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-lg font-bold leading-tight">Incoming: Rajesh Kumar</p>
-              <p className="text-sm text-ink-soft flex items-center gap-1.5 mt-1"><Icon name="phone" className="size-4" />WhatsApp video, +91 90000 12345</p>
-            </div>
-            <span className={`orb size-11 shrink-0 font-extrabold tnum text-sm text-white transition-colors duration-500 ${call.risk >= 60 ? "bg-high" : "bg-night"}`} aria-label={`Risk ${call.risk}`}>{call.risk}</span>
-          </div>
-          <AnimatePresence mode="wait">
-            <motion.p key={call.line} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              className={`mt-4 text-sm font-semibold min-h-[2.5rem] ${hot ? "text-high" : "text-ink-soft"}`} aria-live="polite">{call.line}</motion.p>
-          </AnimatePresence>
-          <ul className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-            <li className="flex items-center gap-2"><Icon name="live" className="size-4 text-ink-soft" />Voice {hot ? "0.99 fake" : "checking"}</li>
-            <li className="flex items-center gap-2"><Icon name="alert" className="size-4 text-ink-soft" />New account</li>
-            <li className="flex items-center gap-2"><Icon name="rupee" className="size-4 text-ink-soft" />Over ₹10 lakh limit</li>
-            <li className="flex items-center gap-2"><Icon name="phone" className="size-4 text-ink-soft" />Unusual channel</li>
-          </ul>
-        </div>
-      </div>
-
-      <div className="absolute inset-x-4 sm:inset-x-8 bottom-8 flex justify-between items-center text-sm sm:text-base">
-        <span className="font-semibold text-ink-soft hidden lg:inline">PS 02: deepfake-enabled social engineering</span>
-        <a href="#problem" className="ml-auto border border-ink/40 rounded-full px-5 py-1.5 font-semibold hover:bg-white/50 hidden lg:inline-block">Scroll down</a>
-      </div>
-    </section>
+    <motion.div className={className} initial={{ opacity: 0, y: 46 }} whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-12% 0px" }} transition={{ duration: 1.1, ease: [0.2, 0.8, 0.2, 1], delay }}>
+      {children}
+    </motion.div>
   );
 }
 
-// A section is its own framed panel on the misty backdrop
-const Panel = ({ id, className = "", children }) => (
-  <section id={id} className="px-3 sm:px-6 py-4">
-    <div className={`frame max-w-[88rem] mx-auto overflow-hidden ${className}`}>{children}</div>
-  </section>
+const Kicker = ({ n, children }) => (
+  <p className="flex items-center gap-3 text-sm font-semibold tracking-[0.18em] uppercase text-white/70">
+    <span className="tnum">{n}</span><span className="h-px w-10 bg-white/50" />{children}
+  </p>
 );
+const Title = ({ children, className = "" }) => (
+  <h2 className={`font-display font-semibold tracking-[-0.02em] leading-[0.95] text-white text-[clamp(2.6rem,6.4vw,6rem)] drop-shadow-[0_4px_30px_rgb(10_6_40/0.45)] ${className}`}>{children}</h2>
+);
+
+function useCallPhase() {
+  const reduced = useReducedMotion();
+  const [phase, setPhase] = useState(reduced ? "hold" : "scanning");
+  useEffect(() => {
+    if (reduced) return;
+    const start = performance.now();
+    const id = setInterval(() => {
+      const t = ((performance.now() - start) / 1000) % 7.5;
+      setPhase(t < 4.1 ? "scanning" : t < 5.3 ? "flagging" : "verdict");
+    }, 200);
+    return () => clearInterval(id);
+  }, [reduced]);
+  return phase;
+}
+
+function Hero() {
+  const phase = useCallPhase();
+  const call = CALL[phase];
+  const hot = phase !== "scanning";
+  return (
+    <Chapter z={7} layers={HERO_LAYERS} lip={HERO_LIP} bg="#1d1656" className="h-[100svh] min-h-[38rem]">
+      <header className="flex items-center justify-between gap-6 px-5 sm:px-10 pt-6 text-white">
+        <a href="#/" className="font-display text-2xl font-bold tracking-tight">TrustCheck</a>
+        <nav aria-label="Sections" className="hidden md:flex gap-9 text-sm font-semibold text-white/80">
+          {NAV.map(([l, h]) => <a key={h} href={h} className="hover:text-white">{l}</a>)}
+        </nav>
+        <a href="#/app/check" className="border border-white/70 rounded-md px-4 py-2 text-sm font-semibold hover:bg-white hover:text-night transition-colors">Open console</a>
+      </header>
+
+      <div className="px-5 sm:px-10 pt-[9vh] sm:pt-[11vh] max-w-[60rem]">
+        <motion.p initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 1, delay: 0.2 }}
+          className="flex items-center gap-3 text-white/85 font-semibold">
+          <Icon name="live" className="size-5" />PS 02: deepfake-enabled social engineering
+        </motion.p>
+        <motion.h1 initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1.2, ease: [0.2, 0.8, 0.2, 1] }}
+          className="mt-5 font-display font-semibold text-white tracking-[-0.03em] leading-[0.88] text-[clamp(3.2rem,8vw,8.2rem)] drop-shadow-[0_6px_40px_rgb(20_10_60/0.45)]">
+          Check before<br />you act.
+        </motion.h1>
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1, delay: 0.5 }} className="mt-6 text-white/90 max-w-md leading-relaxed">
+          The voice sounds like your CFO. The request doesn't. TrustCheck checks the voice, the face, the words and what's actually being asked,
+          then makes you verify with the real person before money or data moves.
+        </motion.p>
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, delay: 0.7 }} className="mt-8 flex flex-wrap gap-3">
+          <a href="#problem" className="bg-white text-night rounded-md px-5 py-3 font-bold inline-flex items-center gap-3 shadow-[0_14px_30px_-12px_rgb(10_6_40/0.6)]">
+            Start the journey<Icon name="arrow" className="size-4 rotate-90" />
+          </a>
+          <a href="#/app/check" className="border border-white/70 text-white rounded-md px-5 py-3 font-bold hover:bg-white/15">Check a message</a>
+        </motion.div>
+      </div>
+
+      {/* the call the person in the grass is taking, scanned live */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, delay: 1 }}
+        className="absolute right-4 sm:right-[6%] top-[22vh] sm:top-[26vh] w-[min(20rem,calc(100%-2rem))] glass-strong text-ink rounded-[1.5rem] p-5 hidden sm:block">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-lg font-bold leading-tight">Incoming: Rajesh Kumar</p>
+            <p className="text-sm text-ink-soft flex items-center gap-1.5 mt-1"><Icon name="phone" className="size-4" />WhatsApp video, +91 90000 12345</p>
+          </div>
+          <span className={`orb size-11 shrink-0 font-extrabold tnum text-sm text-white transition-colors duration-500 ${call.risk >= 60 ? "bg-high" : "bg-night"}`} aria-label={`Risk ${call.risk}`}>{call.risk}</span>
+        </div>
+        <AnimatePresence mode="wait">
+          <motion.p key={call.line} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            className={`mt-3 text-sm font-semibold min-h-[2.5rem] ${hot ? "text-high" : "text-ink-soft"}`} aria-live="polite">{call.line}</motion.p>
+        </AnimatePresence>
+        <ul className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+          <li className="flex items-center gap-2"><Icon name="live" className="size-4 text-ink-soft" />Voice {hot ? "0.99 fake" : "checking"}</li>
+          <li className="flex items-center gap-2"><Icon name="alert" className="size-4 text-ink-soft" />New account</li>
+          <li className="flex items-center gap-2"><Icon name="rupee" className="size-4 text-ink-soft" />Over ₹10 lakh</li>
+          <li className="flex items-center gap-2"><Icon name="phone" className="size-4 text-ink-soft" />Unusual channel</li>
+        </ul>
+      </motion.div>
+    </Chapter>
+  );
+}
 
 export default function Landing() {
   return (
-    <div className="pb-28">
+    <div className="overflow-x-clip bg-[#0f0b2c] text-white">
+      <WorldDefs />
       <Hero />
       <Dock current="home" />
 
-      <Panel id="problem" className="bg-white/60 backdrop-blur-xl">
-        <div className="p-6 sm:p-12 lg:p-16 grid lg:grid-cols-[1fr_1.3fr] gap-10 lg:gap-16">
-          <div>
-            <h2 className="text-4xl sm:text-6xl font-bold tracking-[-0.04em] leading-[0.95]">Spelling mistakes won't save anyone now.</h2>
-            <p className="mt-6 text-lg text-ink-soft max-w-md">Generated voices and faces pass a phone call. The old tells are gone, but the scam still has to ask for something, and that's where we catch it.</p>
-          </div>
-          <dl className="grid gap-3">
+      <Chapter id="problem" z={6} layers={PROBLEM_LAYERS} lip={PROBLEM_LIP} bg="#130f3a" className="min-h-[125svh]">
+        <div className="px-5 sm:px-10 pt-[26vw] sm:pt-[22vw] lg:pt-[16vw] pb-[24vw] lg:ml-auto lg:w-[48%] lg:pr-[6%]">
+          <Reveal><Kicker n="01">The problem</Kicker></Reveal>
+          <Reveal delay={0.1}><Title className="mt-5">Spelling mistakes won't save anyone now.</Title></Reveal>
+          <Reveal delay={0.2}><p className="mt-6 text-lg text-white/80 max-w-lg">Generated voices and faces pass a phone call. The old tells are gone, but the scam still has to ask for something, and that's where we catch it.</p></Reveal>
+          <dl className="mt-12 divide-y divide-white/15 border-y border-white/15">
             {LEDGER.map(([n, d], i) => (
-              <div key={n} className={`rounded-[2rem] p-6 sm:p-7 grid sm:grid-cols-[11rem_1fr] gap-x-6 gap-y-1 items-center ${i === 0 ? "bg-night text-white" : "glass-strong"}`}>
-                <dt className="text-4xl sm:text-5xl font-extrabold tracking-tight tnum">{n}</dt>
-                <dd className={i === 0 ? "text-white/80" : "text-ink-soft"}>{d}</dd>
-              </div>
+              <Reveal key={n} delay={0.15 * i} className="py-6 grid sm:grid-cols-[12.5rem_1fr] gap-x-6 gap-y-1 items-baseline">
+                <dt className="font-display text-4xl sm:text-[2.7rem] font-semibold tnum text-[#ffcf8a] whitespace-nowrap">{n}</dt>
+                <dd className="text-white/75 leading-relaxed">{d}</dd>
+              </Reveal>
             ))}
-            <p className="text-xs text-ink-soft px-2">Sources: Arup case reporting (2024); Ministry of Home Affairs, Rajya Sabha reply; D3COY problem statement citing Gartner (2026).</p>
           </dl>
+          <p className="mt-4 text-xs text-white/50">Sources: Arup case reporting (2024); Ministry of Home Affairs, Rajya Sabha reply; D3COY problem statement citing Gartner (2026).</p>
         </div>
-      </Panel>
+      </Chapter>
 
-      <Panel id="maths" className="dusk">
-        <div className="p-6 sm:p-12 lg:p-16">
-          <h2 className="text-4xl sm:text-6xl font-bold tracking-[-0.04em] leading-[0.95] text-white max-w-[16ch] drop-shadow-[0_2px_24px_rgb(35_22_94/0.25)]">A perfect deepfake still has to ask for money.</h2>
-          <p className="mt-5 text-lg text-ink max-w-2xl mb-10">The risk is the evidence that something's fake, multiplied by the damage the request could do. Policy rules set a floor no detector can talk its way under. Pick “A perfect fake”: the maths says 17, the rule says HIGH.</p>
-          <MathsLab />
+      <Chapter id="maths" z={5} layers={MATHS_LAYERS} lip={MATHS_LIP} bg="#0f0b2c" className="min-h-[130svh]">
+        <div className="px-5 sm:px-10 pt-[20vw] lg:pt-[13vw] pb-[22vw] max-w-[88rem] mx-auto text-ink">
+          <Reveal><Kicker n="02">The maths</Kicker></Reveal>
+          <Reveal delay={0.1}><Title className="mt-5 max-w-[16ch]">A perfect deepfake still has to ask for money.</Title></Reveal>
+          <Reveal delay={0.2}><p className="mt-6 text-lg text-white/80 max-w-2xl mb-12">The risk is the evidence that something's fake, multiplied by the damage the request could do. Policy rules set a floor no detector can talk its way under. Pick “A perfect fake”: the maths says 17, the rule says HIGH.</p></Reveal>
+          <Reveal delay={0.25}><MathsLab /></Reveal>
         </div>
-      </Panel>
+      </Chapter>
 
-      <Panel id="how" className="bg-night text-white">
-        <div className="p-6 sm:p-12 lg:p-16">
-          <h2 className="text-4xl sm:text-6xl font-bold tracking-[-0.04em] leading-[0.95] max-w-[14ch]">Five checks, one honest answer.</h2>
-          <ol className="mt-12 grid md:grid-cols-5 gap-3">
+      <Chapter id="how" z={4} layers={HOW_LAYERS} lip={HOW_LIP} bg="#0f0b2c" className="min-h-[125svh]">
+        <div className="px-5 sm:px-10 pt-[18vw] lg:pt-[12vw] pb-[42vw] max-w-[88rem] mx-auto">
+          <Reveal><Kicker n="03">How it works</Kicker></Reveal>
+          <Reveal delay={0.1}><Title className="mt-5 max-w-[14ch]">Five lanterns, one honest answer.</Title></Reveal>
+          <ol className="mt-12 grid md:grid-cols-5 gap-8 md:gap-6">
             {PIPELINE.map(([h, d, m], i) => (
-              <li key={h} className="rounded-[1.75rem] bg-white/[0.07] border border-white/15 p-5 flex flex-col">
-                <span className="orb size-10 bg-white text-night font-extrabold tnum">{i + 1}</span>
-                <h3 className="mt-5 text-xl font-bold">{h}</h3>
+              <Reveal key={h} delay={0.12 * i} className="border-t border-white/30 pt-5">
+                <span className="font-display text-5xl font-semibold text-[#ffd27a] tnum">{i + 1}</span>
+                <h3 className="mt-3 text-xl font-bold">{h}</h3>
                 <p className="mt-2 text-white/80 text-sm leading-relaxed">{d}</p>
-                <p className="mt-auto pt-4 text-xs text-white/55">{m}</p>
-              </li>
+                <p className="mt-3 text-xs text-white/55">{m}</p>
+              </Reveal>
             ))}
           </ol>
         </div>
-      </Panel>
+      </Chapter>
 
-      <Panel id="verify" className="bg-white/60 backdrop-blur-xl">
-        <div className="p-6 sm:p-12 lg:p-16">
-          <h2 className="text-4xl sm:text-6xl font-bold tracking-[-0.04em] leading-[0.95] max-w-[16ch] mb-12">Don't detect harder. Ask the real person.</h2>
-          <PhoneVerify />
+      <Chapter id="verify" z={3} layers={VERIFY_LAYERS} lip={VERIFY_LIP} bg="#130e38" className="min-h-[125svh]">
+        <div className="px-5 sm:px-10 pt-[16vw] lg:pt-[11vw] pb-[20vw] max-w-[80rem] mx-auto">
+          <Reveal className="text-center"><div className="flex justify-center"><Kicker n="04">Verify</Kicker></div></Reveal>
+          <Reveal delay={0.1}><Title className="mt-5 text-center mx-auto max-w-[16ch]">Don't detect harder. Ask the real person.</Title></Reveal>
+          <Reveal delay={0.2} className="mt-14"><PhoneVerify /></Reveal>
         </div>
-      </Panel>
+      </Chapter>
 
-      <Panel className="dusk">
-        <div className="p-6 sm:p-12 lg:p-16 grid lg:grid-cols-2 gap-10 lg:gap-16">
+      <Chapter id="india" z={2} layers={INDIA_LAYERS} lip={INDIA_LIP} bg="#1a1446" className="min-h-[125svh]">
+        <div className="px-5 sm:px-10 pt-[16vw] lg:pt-[11vw] pb-[22vw] max-w-[88rem] mx-auto grid lg:grid-cols-2 gap-12 lg:gap-16">
           <div>
-            <h2 className="text-4xl sm:text-5xl font-bold tracking-[-0.04em] leading-[0.95] text-white drop-shadow-[0_2px_24px_rgb(35_22_94/0.25)]">Built for how India gets scammed.</h2>
-            <p className="mt-5 text-lg max-w-prose">Scams here switch between Hindi and English mid-sentence and arrive on WhatsApp, not email. TrustCheck reads them as they're written.</p>
-            <blockquote className="mt-8 glass-strong rounded-[2rem] p-6 text-lg leading-[1.9]">
-              Main <u className="decoration-high decoration-[3px] underline-offset-[5px] font-semibold">CBI officer</u> bol raha hoon. Aapke naam pe <u className="decoration-high decoration-[3px] underline-offset-[5px] font-semibold">money laundering</u> case hai.
-              Video call pe raho, <u className="decoration-high decoration-[3px] underline-offset-[5px] font-semibold">disconnect mat karna</u>, warna <u className="decoration-high decoration-[3px] underline-offset-[5px] font-semibold">arrest</u>.
-              <u className="decoration-high decoration-[3px] underline-offset-[5px] font-semibold">Turant</u> <u className="decoration-high decoration-[3px] underline-offset-[5px] font-semibold">2 lakh</u> UPI karo.
-              <footer className="mt-3 text-sm text-high font-bold">HIGH: digital arrest pattern. Real police never arrest anyone over a video call.</footer>
-            </blockquote>
+            <Reveal><Kicker n="05">Bharat-ready</Kicker></Reveal>
+            <Reveal delay={0.1}><Title className="mt-5">Built for how India gets scammed.</Title></Reveal>
+            <Reveal delay={0.2}><p className="mt-6 text-lg text-white/85 max-w-prose">Scams here switch between Hindi and English mid-sentence and arrive on WhatsApp, not email. TrustCheck reads them as they're written.</p></Reveal>
+            <Reveal delay={0.3}>
+              <blockquote className="mt-8 glass-strong rounded-[2rem] p-6 text-lg leading-[1.9] text-ink">
+                Main <u className="decoration-high decoration-[3px] underline-offset-[5px] font-semibold">CBI officer</u> bol raha hoon. Aapke naam pe <u className="decoration-high decoration-[3px] underline-offset-[5px] font-semibold">money laundering</u> case hai.
+                Video call pe raho, <u className="decoration-high decoration-[3px] underline-offset-[5px] font-semibold">disconnect mat karna</u>, warna <u className="decoration-high decoration-[3px] underline-offset-[5px] font-semibold">arrest</u>.
+                <u className="decoration-high decoration-[3px] underline-offset-[5px] font-semibold">Turant</u> <u className="decoration-high decoration-[3px] underline-offset-[5px] font-semibold">2 lakh</u> UPI karo.
+                <footer className="mt-3 text-sm text-high font-bold">HIGH: digital arrest pattern. Real police never arrest anyone over a video call.</footer>
+              </blockquote>
+            </Reveal>
           </div>
-          <ul className="grid gap-3 self-center">
+          <ul className="grid gap-8 self-end lg:pb-10">
             {[["Forward it to the bot", "Anyone can forward a voice note or message to the Telegram bot and get a verdict back in English and Hindi, with the 1930 helpline."],
               ["CERT-In report in one click", "Incidents must be reported within 6 hours. TrustCheck pre-fills the draft with every indicator it found."],
-              ["Biometrics stay put", "Only voice and face embeddings are kept, never recordings, in line with the DPDP Act 2023."]].map(([h, d]) => (
-              <li key={h} className="glass rounded-[2rem] p-6"><b className="block text-xl">{h}</b><span className="text-ink-soft">{d}</span></li>
+              ["Biometrics stay put", "Only voice and face embeddings are kept, never recordings, in line with the DPDP Act 2023."]].map(([h, d], i) => (
+              <Reveal key={h} delay={0.15 * i} className="border-l-2 border-[#ffcf8a]/70 pl-5">
+                <b className="block font-display text-2xl font-semibold">{h}</b><span className="text-white/80">{d}</span>
+              </Reveal>
             ))}
           </ul>
         </div>
-      </Panel>
+      </Chapter>
 
-      <Panel className="bg-white/60 backdrop-blur-xl">
-        <div className="p-6 sm:p-12 lg:p-16 grid md:grid-cols-[1fr_1.4fr] gap-10">
-          <h2 className="text-3xl sm:text-5xl font-bold tracking-[-0.04em] leading-[0.95]">Where it can be wrong</h2>
-          <ul className="space-y-4 text-lg text-ink-soft max-w-prose">
-            <li>New voice-cloning tools appear monthly; detectors trained before them will miss some. That's why no single detector decides.</li>
-            <li>Phone and WhatsApp compression blur the evidence. We measure and report the drop instead of hiding it.</li>
-            <li>A good clone can pass a voiceprint check. It still can't answer “YES” from the real person's phone.</li>
-            <li>AI-written text can't be reliably detected, so we judge the manipulation, not who wrote it.</li>
+      <Chapter id="dawn" z={1} layers={DAWN_LAYERS} bg="#1e1850" className="min-h-[150svh]">
+        <div className="px-5 sm:px-10 pt-[14vw] lg:pt-[9vw] max-w-[88rem] mx-auto grid md:grid-cols-[1fr_1.4fr] gap-10">
+          <Reveal><Kicker n="06">Honest limits</Kicker><Title className="mt-5 !text-[clamp(2.2rem,4.6vw,4.2rem)]">Where it can be wrong</Title></Reveal>
+          <ul className="space-y-4 text-lg text-white/85 max-w-prose md:pt-10">
+            {["New voice-cloning tools appear monthly; detectors trained before them will miss some. That's why no single detector decides.",
+              "Phone and WhatsApp compression blur the evidence. We measure and report the drop instead of hiding it.",
+              "A good clone can pass a voiceprint check. It still can't answer “YES” from the real person's phone.",
+              "AI-written text can't be reliably detected, so we judge the manipulation, not who wrote it."].map((t, i) => <Reveal key={i} delay={0.1 * i}><li>{t}</li></Reveal>)}
           </ul>
         </div>
-      </Panel>
-
-      <Panel className="bg-night text-white">
-        <div className="p-8 sm:p-14 flex flex-wrap items-end justify-between gap-8">
-          <div>
-            <p className="text-5xl sm:text-7xl font-bold tracking-[-0.04em] leading-[0.92]">Check before you act.</p>
-            <p className="mt-4 text-white/60">Team Semicolons, D3COY 2026, PS 02</p>
-          </div>
-          <a href="#/app/check" className="bg-white text-night rounded-full pl-6 pr-2 py-2 font-bold inline-flex items-center gap-3 text-lg">
-            Open the console<span className="orb size-10 bg-night text-white"><Icon name="arrow" /></span>
-          </a>
+        <div className="px-5 sm:px-10 pt-[30vh] pb-[24vh] text-center">
+          <Reveal>
+            <p className="font-display font-semibold tracking-[-0.03em] leading-[0.9] text-[clamp(3.2rem,9vw,8.5rem)] text-white drop-shadow-[0_6px_40px_rgb(120_40_80/0.45)]">Check before you act.</p>
+            <p className="mt-4 text-night/80 font-semibold">Team Semicolons, D3COY 2026, PS 02</p>
+            <a href="#/app/check" className="mt-8 bg-night text-white rounded-md pl-6 pr-2 py-2 font-bold inline-flex items-center gap-3 text-lg shadow-[0_20px_40px_-16px_rgb(35_22_94/0.7)]">
+              Open the console<span className="orb size-10 bg-white text-night"><Icon name="arrow" /></span>
+            </a>
+          </Reveal>
         </div>
-      </Panel>
+      </Chapter>
     </div>
   );
 }

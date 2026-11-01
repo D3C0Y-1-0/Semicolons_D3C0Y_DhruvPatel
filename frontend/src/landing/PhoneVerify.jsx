@@ -12,7 +12,7 @@ export default function PhoneVerify() {
   const [answer, setAnswer] = useState(null);
   return (
     <div className="grid md:grid-cols-[18rem_1fr] gap-12 items-center">
-      <div className="mx-auto w-72 rounded-[2.8rem] bg-night p-3 shadow-[0_40px_80px_-30px_rgb(35_22_94/0.6)]">
+      <div className="mx-auto w-72 rounded-[2.8rem] bg-night text-ink p-3 shadow-[0_40px_80px_-30px_rgb(35_22_94/0.6)]">
         <div className="rounded-[2.2rem] dusk h-[31rem] flex flex-col overflow-hidden">
           <div className="glass-strong px-4 py-3 text-sm font-bold">TrustCheck security bot</div>
           <div className="flex-1 p-3 flex flex-col justify-end gap-2 text-[0.84rem]">
@@ -39,7 +39,7 @@ export default function PhoneVerify() {
 
       <div className="min-h-[22rem]">
         {!answer && (
-          <p className="text-xl text-ink-soft max-w-md">
+          <p className="text-xl text-white/85 max-w-md">
             This is the message the <i>real</i> CFO gets on the phone number he enrolled, not on the channel the attacker controls.
             Tap an answer on the phone.
           </p>
@@ -49,14 +49,14 @@ export default function PhoneVerify() {
           <ol className="space-y-3">
             {AFTER.map(([h, d], i) => (
               <motion.li key={h} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.25 + i * 0.35 }}
-                className="grid grid-cols-[2rem_1fr] gap-4 glass-strong rounded-[1.5rem] p-4">
+                className="grid grid-cols-[2rem_1fr] gap-4 glass-strong text-ink rounded-[1.5rem] p-4">
                 <span className="orb size-8 bg-night text-white text-sm font-bold tnum">{i + 1}</span>
                 <span><b className="block text-lg">{h}</b><span className="text-ink-soft">{d}</span></span>
               </motion.li>
             ))}
           </ol>
         )}
-        {answer && <button onClick={() => setAnswer(null)} className="mt-6 bg-white/80 border border-white rounded-full px-5 py-2.5 font-semibold">Reset the phone</button>}
+        {answer && <button onClick={() => setAnswer(null)} className="mt-6 bg-white/80 text-ink border border-white rounded-full px-5 py-2.5 font-semibold">Reset the phone</button>}
       </div>
     </div>
   );
