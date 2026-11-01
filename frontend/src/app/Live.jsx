@@ -90,6 +90,11 @@ export default function Live() {
                     title={`${w.start}s: p(fake) ${w.p_fake}`} className={`flex-1 rounded-sm ${w.p_fake >= 0.5 ? "bg-high" : "bg-low"}`} />
                 ))}
               </div>
+              {state.timeline.length > 0 && (
+                <p className="text-xs text-ink-soft -mt-2">
+                  Each block is a slice of the caller's voice, newest on the right: <span className="text-high font-semibold">red sounds AI-generated</span>, <span className="text-low font-semibold">teal sounds human</span>. Taller means more sure.
+                </p>
+              )}
               <p className="text-ink-soft whitespace-pre-wrap max-w-prose">{state.transcript || "No speech recognised yet."}</p>
               <p className="text-xs text-ink-soft tnum">{state.seconds}s analysed</p>
             </div>
