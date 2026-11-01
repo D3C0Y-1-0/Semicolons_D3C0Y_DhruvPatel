@@ -23,7 +23,7 @@ vec3 noised(vec2 x) {
   return vec3(a + (b - a) * u.x + (c - a) * u.y + (a - b - c + d) * u.x * u.y, du * (vec2(b - a, c - a) + (a - b - c + d) * u.yx));
 }
 const mat2 m2 = mat2(0.8, -0.6, 0.6, 0.8);
-float fbm(vec2 p) { float a = 0.0, b = 0.5; for (int i = 0; i < 5; i++) { a += b * noised(p).x; b *= 0.5; p = m2 * p * 2.02; } return a; }
+float fbm(vec2 p) { float a = 0.0, b = 0.5; for (int i = 0; i < 4; i++) { a += b * noised(p).x; b *= 0.5; p = m2 * p * 2.02; } return a; }
 
 float pathX(float z) { return 70.0 * sin(z * 0.0042) + 34.0 * sin(z * 0.0105 + 1.3); }
 
@@ -58,13 +58,13 @@ Sky skyAt(float s) {
 
 vec3 aurora(vec3 rd) {
   vec3 acc = vec3(0.0);
-  for (int i = 0; i < 26; i++) {
-    float fi = float(i), t = (900.0 + fi * 32.0) / rd.y;
+  for (int i = 0; i < 13; i++) {
+    float fi = (float(i) + hash12(gl_FragCoord.xy)) * 2.0, t = (900.0 + fi * 32.0) / rd.y; // dithered layers, no banding
     vec2 pp = rd.xz * t * 0.0009 + vec2(uTime * 0.012, fi * 0.004);
     float n = noised(pp * vec2(0.6, 2.4)).x * 0.7 + noised(pp * vec2(1.7, 5.0) - uTime * 0.02).x * 0.45;
     float band = pow(smoothstep(0.62, 1.05, n), 2.2);
     vec3 c = mix(vec3(0.1, 1.0, 0.55), vec3(0.65, 0.25, 1.0), smoothstep(6.0, 24.0, fi));
-    acc += c * band * exp(-fi * 0.09) * 0.16;
+    acc += c * band * exp(-fi * 0.09) * 0.3;
   }
   return acc * smoothstep(0.04, 0.3, rd.y);
 }
@@ -97,16 +97,16 @@ float march(vec3 ro, vec3 rd, float tmax, int steps, int oct) {
   for (int i = 0; i < 260; i++) {
     if (i >= steps) break;
     vec3 p = ro + t * rd; float h = p.y - terrain(p.xz, oct);
-    if (abs(h) < 0.0015 * t || t > tmax) break;
-    t += 0.42 * h;
+    if (abs(h) < 0.0025 * t || t > tmax) break;
+    t += h * (0.45 + t * 0.00018);
   }
   return t;
 }
 float softShadow(vec3 ro, vec3 rd) {
   float res = 1.0, t = 2.0;
-  for (int i = 0; i < 40; i++) {
-    vec3 p = ro + t * rd; float h = p.y - terrain(p.xz, 5);
-    res = min(res, 14.0 * h / t); t += clamp(h, 3.0, 45.0);
+  for (int i = 0; i < 22; i++) {
+    vec3 p = ro + t * rd; float h = p.y - terrain(p.xz, 4);
+    res = min(res, 12.0 * h / t); t += clamp(h, 6.0, 80.0);
     if (res < 0.002 || p.y > 420.0) break;
   }
   return clamp(res, 0.0, 1.0);
@@ -172,16 +172,16 @@ void main() {
   float z = s * 3600.0 + uTime * 1.6;
   vec3 ro = vec3(pathX(z), 0.0, z);
   float g = W;
-  for (int i = 0; i < 4; i++) { float zz = z + float(i) * 35.0; g = max(g, terrain(vec2(pathX(zz), zz), 5)); }
+  for (int i = 0; i < 2; i++) { float zz = z + float(i) * 70.0; g = max(g, terrain(vec2(pathX(zz), zz), 5)); }
   ro.y = g + altAt(s);
   vec3 ta = vec3(pathX(z + 420.0) + uMouse.x * 110.0, ro.y + pitchAt(s) * 420.0 + uMouse.y * 70.0, z + 420.0);
   float roll = clamp((pathX(z + 160.0) - pathX(z)) * -0.0035, -0.28, 0.28);
   vec3 cw = normalize(ta - ro), cp = vec3(sin(roll), cos(roll), 0.0), cu = normalize(cross(cw, cp)), cv = cross(cu, cw);
   vec3 rd = normalize(uv.x * cu + uv.y * cv + 1.7 * cw);
 
-  int steps = uQ > 0.5 ? 240 : 150;
+  int steps = uQ > 0.5 ? 150 : 100;
   float tmax = 4200.0;
-  float t = march(ro, rd, tmax, steps, uQ > 0.5 ? 8 : 6);
+  float t = march(ro, rd, tmax, steps, uQ > 0.5 ? 7 : 6);
   float tw = rd.y < 0.0 ? (W - ro.y) / rd.y : 1e9;
   vec3 col;
 
@@ -191,9 +191,9 @@ void main() {
       vec3 n1 = noised(p.xz * 0.05 + vec2(uTime * 0.35, uTime * 0.18)), n2 = noised(p.xz * 0.16 - vec2(uTime * 0.25, -uTime * 0.3));
       vec3 wn = normalize(vec3(-(n1.y * 0.2 + n2.y * 0.1), 1.0, -(n1.z * 0.2 + n2.z * 0.1)));
       vec3 rf = reflect(rd, wn);
-      float tr = march(p + vec3(0.0, 0.5, 0.0), rf, 1800.0, uQ > 0.5 ? 110 : 60, 5);
+      float tr = march(p + vec3(0.0, 0.5, 0.0), rf, 1400.0, uQ > 0.5 ? 50 : 32, 4);
       vec3 rc;
-      if (tr < 1800.0) { vec3 q = p + rf * tr; rc = fog(shade(q, normalAt(q, tr, 6), k, false), rf, tr, q, k); }
+      if (tr < 1400.0) { vec3 q = p + rf * tr; rc = fog(shade(q, normalAt(q, tr, 5), k, false), rf, tr, q, k); }
       else rc = skyColor(p, rf, k);
       float fr = 0.03 + 0.97 * pow(1.0 - max(dot(-rd, wn), 0.0), 5.0);
       vec3 deep = mix(vec3(0.01, 0.03, 0.05), vec3(0.03, 0.09, 0.1), k.amb.g * 2.0) + k.amb * 0.25;
@@ -201,7 +201,7 @@ void main() {
       col += mix(k.lcol, vec3(0.9, 0.95, 1.2) * 0.4, k.night) * pow(max(dot(rf, k.L), 0.0), 400.0) * 2.5 * smoothstep(20.0, 160.0, tw);
       col = fog(col, rd, tw, p, k);
     } else {
-      vec3 p = ro + t * rd, n = normalAt(p, t, uQ > 0.5 ? 13 : 9);
+      vec3 p = ro + t * rd, n = normalAt(p, t, uQ > 0.5 ? 11 : 8);
       col = fog(shade(p, n, k, uQ > 0.25), rd, t, p, k);
     }
   } else col = skyColor(ro, rd, k);
@@ -239,8 +239,8 @@ export default function SkyWorld({ className = "" }) {
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const phone = window.matchMedia("(max-width: 700px)").matches;
-    let scale = phone ? 0.45 : 0.62, quality = phone ? 0.3 : 1; // adapted below to hold ~50 fps
-    let s = 0, mx = 0, my = 0, tmx = 0, tmy = 0, raf = 0, last = performance.now(), avg = 16, frames = 0;
+    let scale = phone ? 0.4 : 0.5, quality = phone ? 0.3 : 1; // adapted below to hold 60 fps
+    let s = 0, s1 = 0, mx = 0, my = 0, tmx = 0, tmy = 0, raf = 0, last = performance.now(), avg = 16, frames = 0;
 
     const size = () => {
       const w = Math.max(1, Math.round(innerWidth * scale)), h = Math.max(1, Math.round(innerHeight * scale));
@@ -248,7 +248,7 @@ export default function SkyWorld({ className = "" }) {
     };
     const target = () => { const max = document.documentElement.scrollHeight - innerHeight; return max > 0 ? Math.min(1, Math.max(0, scrollY / max)) : 0; };
     const forced = parseFloat(new URLSearchParams(location.search).get("s")); // ?s=0.5 jumps the flight (demo/debug knob)
-    s = target();
+    s = s1 = target();
     const move = (e) => { tmx = (e.clientX / innerWidth) * 2 - 1; tmy = -((e.clientY / innerHeight) * 2 - 1); };
     addEventListener("pointermove", move, { passive: true });
 
@@ -256,11 +256,13 @@ export default function SkyWorld({ className = "" }) {
       raf = requestAnimationFrame(frame);
       if (document.hidden) return;
       const dt = Math.min(0.1, (now - last) / 1000); last = now;
-      s = Number.isFinite(forced) ? forced : s + (target() - s) * Math.min(1, dt * 3.2); // the camera glides after the scroll
+      // two chained eases: the camera accelerates and settles instead of snapping to each wheel step
+      const e = Math.min(1, dt * 4);
+      s1 += (target() - s1) * e; s = Number.isFinite(forced) ? forced : s + (s1 - s) * e;
       mx += (tmx - mx) * Math.min(1, dt * 2); my += (tmy - my) * Math.min(1, dt * 2);
       avg = avg * 0.92 + dt * 1000 * 0.08;
-      if (++frames % 45 === 0) {                         // hold the frame rate by trading resolution
-        if (avg > 24 && scale > 0.32) scale -= 0.06; else if (avg < 13 && scale < (phone ? 0.6 : 0.9)) scale += 0.04;
+      if (++frames % 40 === 0) {                         // hold 60 fps by trading resolution
+        if (avg > 19 && scale > 0.3) scale -= 0.05; else if (avg < 17.2 && scale < (phone ? 0.5 : 0.72)) scale += 0.02;
       }
       size();
       gl.uniform2f(u.uRes, canvas.width, canvas.height);

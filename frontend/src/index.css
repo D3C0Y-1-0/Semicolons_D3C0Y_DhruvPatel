@@ -66,6 +66,13 @@ textarea:focus-visible, input:focus-visible, select:focus-visible { outline-offs
 .ds-mote { animation: ds-mote 12s linear infinite; }
 
 
+/* Landing: the 3D landscape behind it redraws every frame, so a live blur over it would be recomputed every
+   frame too. Panels and the dock go solid there instead. */
+.landing .glass, .landing .glass-strong, .landing [class*="backdrop-blur"] { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+.landing .glass { background: rgb(255 255 255 / 0.86); }
+.landing .glass-strong { background: rgb(255 255 255 / 0.93); }
+.landing nav [class*="backdrop-blur"] { background: rgb(255 255 255 / 0.88); }
+
 /* the heat scale, 0 to 100 risk */
 .heat-scale { background: linear-gradient(90deg, var(--color-heat-0) 0%, var(--color-heat-1) 30%, var(--color-heat-2) 60%, var(--color-heat-3) 82%, var(--color-heat-4) 100%); }
 

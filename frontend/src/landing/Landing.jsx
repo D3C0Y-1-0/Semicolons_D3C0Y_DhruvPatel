@@ -134,7 +134,7 @@ function Hero() {
 
 export default function Landing() {
   return (
-    <div className="overflow-x-clip bg-[#0b0820] text-white">
+    <div className="landing overflow-x-clip bg-[#0b0820] text-white">
       <SkyWorld />
       <Hero />
       <Dock current="home" />
