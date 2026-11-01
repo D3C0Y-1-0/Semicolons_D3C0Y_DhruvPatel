@@ -2,6 +2,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
 import Dock from "../components/Dock.jsx";
 import Icon from "../components/Icons.jsx";
+import Logo from "../components/Logo.jsx";
 import { api } from "../lib/api.js";
 import Cases from "./Cases.jsx";
 import Check from "./Check.jsx";
@@ -61,7 +62,7 @@ export default function AppShell({ page }) {
   return (
     <div className="mac wallpaper min-h-dvh text-ink sm:h-dvh sm:overflow-hidden">
       <header className="menubar fixed inset-x-0 top-0 z-40 h-7 flex items-center gap-4 px-4 text-ink">
-        <a href="#/" aria-label="TrustCheck home" className="orb size-[18px] bg-night text-white text-[10px] font-extrabold">T</a>
+        <a href="#/" aria-label="TrustCheck home" className="inline-flex"><Logo size={18} title="" /></a>
         <span className="font-bold">TrustCheck</span>
         <span className="hidden sm:inline text-ink/70">{title}</span>
         <span className="ml-auto flex items-center gap-4 text-ink/85" aria-live="polite">

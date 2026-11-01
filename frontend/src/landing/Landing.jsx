@@ -2,6 +2,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
 import Dock from "../components/Dock.jsx";
 import Icon from "../components/Icons.jsx";
+import Logo from "../components/Logo.jsx";
 import MathsLab from "./MathsLab.jsx";
 import PhoneVerify from "./PhoneVerify.jsx";
 import SkyWorld from "./SkyWorld.jsx";
@@ -79,7 +80,7 @@ function Hero() {
   return (
     <Section className="h-[100svh] min-h-[38rem]">
       <header className="flex items-center justify-between gap-6 px-5 sm:px-10 pt-6 text-white">
-        <a href="#/" className="font-display text-2xl font-bold tracking-tight">TrustCheck</a>
+        <a href="#/" className="font-display text-2xl font-bold tracking-tight inline-flex items-center gap-3"><Logo size={38} title="" />TrustCheck</a>
         <nav aria-label="Sections" className="hidden md:flex gap-9 text-sm font-semibold text-white/80">
           {NAV.map(([l, h]) => <a key={h} href={h} className="hover:text-white">{l}</a>)}
         </nav>

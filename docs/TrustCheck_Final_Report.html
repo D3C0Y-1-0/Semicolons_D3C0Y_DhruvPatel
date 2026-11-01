@@ -64,7 +64,7 @@ code, .mono { font-family: var(--font-mono); font-size: 0.86em; }
 /* hero */
 .hero { display: grid; gap: 28px; }
 .hero-top { display: flex; flex-wrap: wrap; gap: 10px 26px; align-items: baseline; justify-content: space-between; }
-.brand { font-family: var(--font-display); font-weight: 700; font-size: 1.35rem; }
+.brand { font-family: var(--font-display); font-weight: 700; font-size: 1.5rem; display: inline-flex; align-items: center; gap: 12px; }
 .status { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.9rem; color: var(--low); background: var(--low-bg); border-radius: 999px; padding: 4px 14px; }
 .status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
 .hero h1 { font-family: var(--font-display); font-weight: 650; font-size: clamp(2.6rem, 7vw, 5.2rem); line-height: 0.98; letter-spacing: -0.025em; }
@@ -149,7 +149,31 @@ footer.end .sign { font-family: var(--font-display); font-style: italic; font-si
 
 <div class="hero">
   <div class="hero-top">
-    <span class="brand">TrustCheck</span>
+    <span class="brand"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="44" height="44" aria-hidden="true">
+  <!-- TrustCheck mark: a check whose rising stroke is a voice waveform, in the risk heat scale, on the indigo tile -->
+  <defs>
+    <linearGradient id="tc-tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#33208f"/><stop offset="0.55" stop-color="#1d1356"/><stop offset="1" stop-color="#0e0930"/>
+    </linearGradient>
+    <radialGradient id="tc-sheen" cx="0.28" cy="0.18" r="0.75">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/><stop offset="0.5" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="tc-heat" x1="14" y1="40" x2="52" y2="14" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#26c6da"/><stop offset="0.3" stop-color="#7c3aed"/><stop offset="0.6" stop-color="#ff2d6f"/>
+      <stop offset="0.82" stop-color="#ff8a1f"/><stop offset="1" stop-color="#ffd84a"/>
+    </linearGradient>
+    <filter id="tc-glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="64" height="64" rx="15" fill="url(#tc-tile)"/>
+  <rect width="64" height="64" rx="15" fill="url(#tc-sheen)"/>
+  <rect x="0.75" y="0.75" width="62.5" height="62.5" rx="14.25" fill="none" stroke="#ffffff" stroke-opacity="0.14" stroke-width="1.5"/>
+  <g fill="none" stroke="url(#tc-heat)" stroke-linecap="round" filter="url(#tc-glow)" transform="translate(-1 4)">
+    <path d="M14 34 L24 44" stroke-width="5.6"/>
+    <path d="M29.5 33.6 V42.6 M35.5 23.2 V40.2 M41.5 19.8 V30.8 M47.5 8.3 V29.3 M53 8.4 V17.4" stroke-width="3.6"/>
+  </g>
+</svg>TrustCheck</span>
     <span class="status">Prototype complete · 1 Nov 2026</span>
   </div>
   <p class="eyebrow">Final project report · D3COY hackathon · PS 02: AI-based deepfake-enabled social engineering detection</p>
